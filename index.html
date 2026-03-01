@@ -347,10 +347,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
           </select>
         </div>
         <div class="fg"><label>ปี (พ.ศ.)</label>
-          <select id="cb-year">
-            <option value="2568">พ.ศ. 2568</option><option value="2567">พ.ศ. 2567</option>
-            <option value="2566">พ.ศ. 2566</option><option value="2565">พ.ศ. 2565</option>
-          </select>
+          <select id="cb-year"></select>
         </div>
       </div>
     </div>
@@ -492,6 +489,30 @@ tr:hover td{background:rgba(255,255,255,.015)}
   </div>
 </div>
 
+<!-- MODAL: Verify Payment -->
+<div class="overlay" id="verifyOverlay">
+  <div class="modal">
+    <h2>🔍 ตรวจสอบการชำระเงิน</h2>
+    <div class="modal-sub">ผู้เช่าแจ้งยอด <strong id="vr-claimed"></strong> บาท — กำหนดยอดที่ยืนยันจริง</div>
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <button class="btn btn-ghost" style="flex:1" onclick="setVerifyFull()">💰 เต็มจำนวน</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="setVerifyPartial()">💧 บางส่วน</button>
+    </div>
+    <div class="fg" style="margin-bottom:16px">
+      <label>ยืนยันยอดรับจริง (บาท)</label>
+      <input type="number" id="vr-amount" placeholder="กรอกจำนวนเงิน">
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
+      ถ้าเลือก "บางส่วน" ระบบจะบันทึกเฉพาะยอดที่กรอก ส่วนที่เหลือยังค้างชำระ
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('verifyOverlay')">ยกเลิก</button>
+      <button class="btn btn-danger" onclick="doVerify(false)">❌ ปฏิเสธ</button>
+      <button class="btn btn-success" onclick="doVerify(true)">✅ ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
 <!-- MOBILE BACKDROP -->
 <div id="mBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:45" onclick="closeMobile()"></div>
 
@@ -529,14 +550,7 @@ function initSupa() {
   loadTenantDropdown();
   loadDashboard();
   loadNotifications();
-  // Set default month/year to current
-  (function() {
-    const now = new Date();
-    const m = document.getElementById('cb-month');
-    const y = document.getElementById('cb-year');
-    if (m) m.value = now.getMonth() + 1;
-    if (y) y.value = now.getFullYear() + 543;
-  })();
+  // month/year init happens in showPage('create-bill')
 })();
 
 function saveSettings() {
@@ -553,6 +567,24 @@ function showStatus(id, msg, type) {
 // ============================================================
 // NAVIGATION
 // ============================================================
+function initCreateBill() {
+  const now = new Date();
+  // Month
+  const m = document.getElementById('cb-month');
+  if (m) m.value = now.getMonth() + 1;
+  // Year - rebuild every time to stay current
+  const y = document.getElementById('cb-year');
+  if (y) {
+    y.innerHTML = '';
+    const curY = now.getFullYear() + 543;
+    for (let yr = curY + 1; yr >= curY - 5; yr--) {
+      const o = new Option('พ.ศ. ' + yr, yr);
+      if (yr === curY) o.selected = true;
+      y.appendChild(o);
+    }
+  }
+}
+
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -563,6 +595,7 @@ function showPage(id) {
   if (id === 'bills') loadBills();
   if (id === 'payments') loadPayments();
   if (id === 'tenants') loadTenants();
+  if (id === 'create-bill') initCreateBill();
   if (window.innerWidth <= 700) closeMobile();
 }
 
@@ -847,7 +880,8 @@ async function openBillDetail(billId) {
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <span class="pill ${p.status==='verified'?'pill-confirmed':p.status==='rejected'?'pill-rejected':'pill-verify'}">${p.status==='verified'?'✅ ยืนยันแล้ว':p.status==='rejected'?'❌ ปฏิเสธ':'🔍 รอตรวจ'}</span>
-            ${p.status==='pending_verify'?`<button class="btn btn-success" style="padding:4px 10px;font-size:11px" onclick="verifyPayment('${p.id}','${billId}',true)">✅</button><button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="verifyPayment('${p.id}','${billId}',false)">❌</button>`:''}
+            ${p.status==='pending_verify'?`<button class="btn btn-primary" style="padding:4px 10px;font-size:11px" onclick="openVerifyModal('${p.id}','${billId}',${p.amount})">🔍 ตรวจสอบ</button>`:''}
+            ${p.status==='verified'?`<button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="verifyPayment('${p.id}','${billId}',false,0)">ยกเลิก</button>`:''}
           </div>
         </div>
         ${p.slip_url?`<img src="${p.slip_url}" class="slip-img" style="max-height:200px;object-fit:contain">`:''}
@@ -861,10 +895,44 @@ async function openBillDetail(billId) {
   openModal('billDetailOverlay');
 }
 
-async function verifyPayment(payId, billId, approve) {
-  const status = approve ? 'verified' : 'rejected';
-  await sb.from('payments').update({ status, verified_at: new Date().toISOString() }).eq('id', payId);
-  // Check if bill fully paid
+let activeVerifyPayId = null;
+let activeVerifyBillId = null;
+let activeVerifyClaimedAmt = 0;
+
+function openVerifyModal(payId, billId, claimedAmt) {
+  activeVerifyPayId = payId;
+  activeVerifyBillId = billId;
+  activeVerifyClaimedAmt = claimedAmt;
+  document.getElementById('vr-claimed').textContent = fmt(claimedAmt);
+  document.getElementById('vr-amount').value = claimedAmt;
+  openModal('verifyOverlay');
+}
+function setVerifyFull()    { document.getElementById('vr-amount').value = activeVerifyClaimedAmt; }
+function setVerifyPartial() { document.getElementById('vr-amount').value = ''; document.getElementById('vr-amount').focus(); }
+
+async function doVerify(approve) {
+  if (!approve) {
+    await sb.from('payments').update({ status: 'rejected', verified_at: new Date().toISOString() }).eq('id', activeVerifyPayId);
+  } else {
+    const confirmedAmt = parseFloat(document.getElementById('vr-amount').value);
+    if (!confirmedAmt || confirmedAmt <= 0) { alert('กรุณากรอกจำนวนเงิน'); return; }
+    await sb.from('payments').update({ status: 'verified', amount: confirmedAmt, verified_at: new Date().toISOString() }).eq('id', activeVerifyPayId);
+  }
+  // Recalc bill status
+  const { data: pays } = await sb.from('payments').select('*').eq('bill_id', activeVerifyBillId);
+  const { data: bill } = await sb.from('bills').select('total').eq('id', activeVerifyBillId).single();
+  const paidTotal = pays.filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
+  let newStatus = 'pending';
+  if (paidTotal >= bill.total) newStatus = 'paid';
+  else if (paidTotal > 0) newStatus = 'partial';
+  await sb.from('bills').update({ status: newStatus }).eq('id', activeVerifyBillId);
+  closeModal('verifyOverlay');
+  openBillDetail(activeVerifyBillId);
+  loadPayments();
+}
+
+async function verifyPayment(payId, billId, approve, amount) {
+  await sb.from('payments').update({ status: approve?'verified':'rejected', verified_at: new Date().toISOString() }).eq('id', payId);
   const { data: pays } = await sb.from('payments').select('*').eq('bill_id', billId);
   const { data: bill } = await sb.from('bills').select('total').eq('id', billId).single();
   const paidTotal = pays.filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
@@ -909,7 +977,7 @@ async function loadPayments() {
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-direction:column">
           <span class="pill ${p.status==='verified'?'pill-confirmed':p.status==='rejected'?'pill-rejected':'pill-verify'}">${p.status==='verified'?'✅ ยืนยัน':p.status==='rejected'?'❌ ปฏิเสธ':'🔍 รอตรวจ'}</span>
-          ${p.status==='pending_verify'?`<button class="btn btn-success" style="padding:5px 12px;font-size:12px" onclick="verifyPayment('${p.id}','${p.bill_id}',true)">✅ อนุมัติ</button><button class="btn btn-danger" style="padding:5px 12px;font-size:12px" onclick="verifyPayment('${p.id}','${p.bill_id}',false)">❌ ปฏิเสธ</button>`:''}
+          ${p.status==='pending_verify'?`<button class="btn btn-primary" style="padding:5px 12px;font-size:12px" onclick="openVerifyModal('${p.id}','${p.bill_id}',${p.amount})">🔍 ตรวจสอบ</button>`:''}
         </div>
       </div>
       ${p.slip_url?`<img src="${p.slip_url}" class="slip-img" style="max-height:220px;object-fit:contain" onclick="window.open('${p.slip_url}','_blank')">`:''}
