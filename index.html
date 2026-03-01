@@ -257,8 +257,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
     <div class="nav-label">จัดการ</div>
     <button class="nav-btn" onclick="showPage('create-bill')" id="nav-create-bill">➕ สร้างบิลใหม่</button>
     <button class="nav-btn" onclick="showPage('tenants')" id="nav-tenants">👥 ผู้เช่า</button>
-    <div class="nav-label">ระบบ</div>
-    <button class="nav-btn" onclick="showPage('settings')" id="nav-settings">⚙️ ตั้งค่า</button>
+
   </div>
 </aside>
 
@@ -441,11 +440,11 @@ tr:hover td{background:rgba(255,255,255,.015)}
     <div class="page-hd"><h1>⚙️ ตั้งค่า Supabase</h1><p>กรอก credentials จาก Supabase project ของคุณ</p></div>
     <div class="card">
       <div class="card-head"><div class="cdot" style="background:var(--rent)"></div><span class="card-title">Supabase Credentials</span></div>
-      <div class="fgrid">
-        <div class="fg full"><label>Project URL</label><input type="text" id="set-url" placeholder="https://xxxx.supabase.co"></div>
-        <div class="fg full"><label>Anon Public Key</label><input type="text" id="set-key" placeholder="eyJhbGciOi..."></div>
+      <div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:22px;margin-bottom:6px">✅</div>
+        <div style="font-family:'Prompt',sans-serif;font-weight:700;color:var(--ok)">เชื่อมต่อ Supabase แล้ว</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">mdnupimieldwqrgxczgu.supabase.co</div>
       </div>
-      <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="saveSettings()">💾 บันทึกและเชื่อมต่อ</button>
       <div id="conn-status" style="margin-top:12px;font-size:13px;text-align:center"></div>
     </div>
     <div class="card" style="margin-top:0">
@@ -500,35 +499,22 @@ tr:hover td{background:rgba(255,255,255,.015)}
 // ============================================================
 // CONFIG
 // ============================================================
-let SUPA_URL = localStorage.getItem('supa_url') || '';
-let SUPA_KEY = localStorage.getItem('supa_key') || '';
-let sb = null;
-let sbReady = false;
+const SUPA_URL = 'https://mdnupimieldwqrgxczgu.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kbnVwaW1pZWxkd3FyZ3hjemd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyODQwNDAsImV4cCI6MjA4Nzg2MDA0MH0.r_z0eYczkO4DfElyU0eVK4CFXQx7r_EmwCepQKhMUQM';
+let sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+let sbReady = true;
 let qrBase64 = localStorage.getItem('pay_qr') || '';
 let activeBillId = null;
 let notifOpen = false;
 let sbVisible = true;
 
 function initSupa() {
-  if (!SUPA_URL || !SUPA_KEY) {
-    document.getElementById('configBanner').style.display = 'block';
-    document.getElementById('configBanner').style.top = '0';
-    document.querySelector('.topbar').style.top = '38px';
-    document.querySelector('.main').style.paddingTop = '110px';
-    return false;
-  }
-  try {
-    sb = supabase.createClient(SUPA_URL, SUPA_KEY);
-    sbReady = true;
-    document.getElementById('configBanner').style.display = 'none';
-    document.querySelector('.topbar').style.top = '0';
-    document.querySelector('.main').style.paddingTop = '72px';
-    // Real-time notifications
-    sb.channel('notifications')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, handleNewNotif)
-      .subscribe();
-    return true;
-  } catch(e) { return false; }
+  document.getElementById('configBanner').style.display = 'none';
+  // Real-time notifications
+  sb.channel('notifications')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, handleNewNotif)
+    .subscribe();
+  return true;
 }
 
 // ============================================================
@@ -554,18 +540,7 @@ function initSupa() {
 })();
 
 function saveSettings() {
-  SUPA_URL = document.getElementById('set-url').value.trim();
-  SUPA_KEY = document.getElementById('set-key').value.trim();
-  if (!SUPA_URL || !SUPA_KEY) { showStatus('conn-status', '⚠️ กรุณากรอกให้ครบ', 'warn'); return; }
-  localStorage.setItem('supa_url', SUPA_URL);
-  localStorage.setItem('supa_key', SUPA_KEY);
-  if (initSupa()) {
-    showStatus('conn-status', '✅ เชื่อมต่อสำเร็จ!', 'ok');
-    setTimeout(() => showPage('dashboard'), 1000);
-    loadDashboard(); loadTenantDropdown();
-  } else {
-    showStatus('conn-status', '❌ เชื่อมต่อไม่ได้ ตรวจสอบ credentials', 'danger');
-  }
+  showStatus('conn-status', '✅ เชื่อมต่อสำเร็จ! (credentials ถูก hardcode ไว้แล้ว)', 'ok');
 }
 
 function showStatus(id, msg, type) {
