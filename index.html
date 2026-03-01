@@ -513,6 +513,23 @@ tr:hover td{background:rgba(255,255,255,.015)}
   </div>
 </div>
 
+<!-- MODAL: Tenant Detail -->
+<div class="overlay" id="tenantDetailOverlay">
+  <div class="modal">
+    <h2 id="td-title">ข้อมูลผู้เช่า</h2>
+    <div class="modal-sub" id="td-sub"></div>
+    <div id="td-body"></div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-family:'Prompt',sans-serif;font-size:13px;font-weight:700;margin-bottom:10px;color:var(--muted)">บิลล่าสุด</div>
+      <div id="td-bills"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('tenantDetailOverlay')">ปิด</button>
+      <button class="btn btn-danger" id="td-delete-btn">🗑 ลบผู้เช่า</button>
+    </div>
+  </div>
+</div>
+
 <!-- MOBILE BACKDROP -->
 <div id="mBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:45" onclick="closeMobile()"></div>
 
@@ -547,10 +564,9 @@ function initSupa() {
   if (SUPA_KEY) document.getElementById('set-key').value = SUPA_KEY;
   initSupa();
   loadPaySettings();
-  loadTenantDropdown();
   loadDashboard();
   loadNotifications();
-  // month/year init happens in showPage('create-bill')
+  // tenant dropdown + month/year init happens in showPage('create-bill')
 })();
 
 function saveSettings() {
@@ -569,10 +585,8 @@ function showStatus(id, msg, type) {
 // ============================================================
 function initCreateBill() {
   const now = new Date();
-  // Month
   const m = document.getElementById('cb-month');
   if (m) m.value = now.getMonth() + 1;
-  // Year - rebuild every time to stay current
   const y = document.getElementById('cb-year');
   if (y) {
     y.innerHTML = '';
@@ -583,6 +597,8 @@ function initCreateBill() {
       y.appendChild(o);
     }
   }
+  // Reload tenant dropdown every time page opens
+  loadTenantDropdown();
 }
 
 function showPage(id) {
@@ -748,7 +764,10 @@ async function loadTenants() {
       <td>${esc(t.name)}</td>
       <td>${esc(t.phone)}</td>
       <td style="color:var(--muted);font-size:12px">${esc(t.id_card)}</td>
-      <td><button class="btn btn-danger" style="padding:5px 10px;font-size:11px" onclick="deleteTenant('${t.id}')">🗑 ลบ</button></td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openTenantDetail('${t.id}')">👁 ดู</button>
+        <button class="btn btn-danger" style="padding:5px 10px;font-size:11px" onclick="deleteTenant('${t.id}')">🗑 ลบ</button>
+      </td>
     </tr>
   `).join('');
 }
@@ -774,6 +793,71 @@ async function deleteTenant(id) {
   if (!confirm('ลบผู้เช่านี้? ข้อมูลบิลที่เกี่ยวข้องจะหายด้วย')) return;
   await sb.from('tenants').delete().eq('id', id);
   loadTenants(); loadTenantDropdown();
+}
+
+// ============================================================
+// TENANT DETAIL
+// ============================================================
+async function openTenantDetail(tenantId) {
+  const { data: t } = await sb.from('tenants').select('*').eq('id', tenantId).single();
+  if (!t) return;
+
+  document.getElementById('td-title').textContent = t.name;
+  document.getElementById('td-sub').textContent = 'ห้อง ' + t.room;
+
+  document.getElementById('td-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">
+      <div style="background:var(--surf2);border-radius:10px;padding:12px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:3px">ห้อง</div>
+        <div style="font-family:'Prompt',sans-serif;font-weight:800;font-size:18px;color:var(--water)">${esc(t.room)}</div>
+      </div>
+      <div style="background:var(--surf2);border-radius:10px;padding:12px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:3px">เบอร์โทร</div>
+        <div style="font-weight:700;font-size:15px">${esc(t.phone||'—')}</div>
+      </div>
+    </div>
+    <div style="background:var(--surf2);border-radius:10px;padding:12px;margin-bottom:4px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:3px">เลขบัตรประชาชน</div>
+      <div style="font-weight:700;letter-spacing:.05em">${esc(t.id_card||'—')}</div>
+    </div>
+    ${t.address ? `<div style="background:var(--surf2);border-radius:10px;padding:12px;margin-bottom:4px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:3px">ที่อยู่</div>
+      <div style="font-size:13px">${esc(t.address)}</div>
+    </div>` : ''}
+    <div style="background:var(--surf2);border-radius:10px;padding:12px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:3px">เพิ่มเมื่อ</div>
+      <div style="font-size:13px">${new Date(t.created_at).toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}</div>
+    </div>
+  `;
+
+  // Load recent bills
+  const { data: bills } = await sb.from('bills').select('*')
+    .eq('tenant_id', tenantId).order('issued_at',{ascending:false}).limit(5);
+
+  const tdBills = document.getElementById('td-bills');
+  if (!bills?.length) {
+    tdBills.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:14px">ยังไม่มีบิล</div>';
+  } else {
+    tdBills.innerHTML = bills.map(b => `
+      <div style="display:flex;justify-content:space-between;align-items:center;
+        padding:10px 12px;background:var(--surf2);border:1px solid var(--border);
+        border-radius:10px;margin-bottom:6px;cursor:pointer"
+        onclick="closeModal('tenantDetailOverlay');openBillDetail('${b.id}')">
+        <div>
+          <div style="font-size:13px;font-weight:600">${esc(b.month_label)}</div>
+          <div style="font-size:11px;color:var(--muted)">${new Date(b.issued_at).toLocaleDateString('th-TH')}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-family:'Prompt',sans-serif;font-weight:700">${fmt(b.total)} บาท</span>
+          ${statusPill(b.status)}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Set delete button
+  document.getElementById('td-delete-btn').onclick = () => deleteTenant(tenantId);
+  openModal('tenantDetailOverlay');
 }
 
 // ============================================================
