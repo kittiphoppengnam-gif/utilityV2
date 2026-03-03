@@ -559,14 +559,10 @@ function initSupa() {
 // INIT
 // ============================================================
 (function() {
-  // Settings prefill
-  if (SUPA_URL) document.getElementById('set-url').value = SUPA_URL;
-  if (SUPA_KEY) document.getElementById('set-key').value = SUPA_KEY;
   initSupa();
   loadPaySettings();
   loadDashboard();
   loadNotifications();
-  // tenant dropdown + month/year init happens in showPage('create-bill')
 })();
 
 function saveSettings() {
@@ -578,6 +574,27 @@ function showStatus(id, msg, type) {
   const colors = { ok: 'var(--ok)', warn: 'var(--elec)', danger: 'var(--danger)' };
   el.style.color = colors[type] || 'var(--muted)';
   el.textContent = msg;
+}
+
+function showAlert(msg, type='warn') {
+  let el = document.getElementById('globalAlert');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'globalAlert';
+    el.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:999;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;font-family:Sarabun,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.4);transition:opacity .3s;min-width:280px;text-align:center;';
+    document.body.appendChild(el);
+  }
+  const styles = {
+    warn:    'background:#1a2540;border:1px solid rgba(251,191,36,.5);color:#fbbf24;',
+    danger:  'background:#1a2540;border:1px solid rgba(248,113,113,.5);color:#f87171;',
+    ok:      'background:#1a2540;border:1px solid rgba(52,211,153,.5);color:#34d399;',
+  };
+  el.style.cssText += styles[type] || styles.warn;
+  el.textContent = msg;
+  el.style.opacity = '1';
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity='0'; setTimeout(()=>el.style.display='none',300); }, 3000);
 }
 
 // ============================================================
@@ -781,9 +798,9 @@ async function saveTenant() {
   const phone   = document.getElementById('nt-phone').value.trim();
   const id_card = document.getElementById('nt-idcard').value.trim();
   const address = document.getElementById('nt-address').value.trim();
-  if (!name || !room || !phone || !id_card) { alert('กรุณากรอกให้ครบ (ชื่อ ห้อง เบอร์ เลขบัตร)'); return; }
+  if (!name || !room || !phone || !id_card) { showAlert('กรุณากรอกให้ครบ: ชื่อ / ห้อง / เบอร์ / เลขบัตร'); return; }
   const { error } = await sb.from('tenants').insert({ name, room, phone, id_card, address });
-  if (error) { alert('เกิดข้อผิดพลาด: ' + error.message); return; }
+  if (error) { showAlert('เกิดข้อผิดพลาด: ' + error.message, 'danger'); return; }
   closeModal('addTenantOverlay');
   ['nt-name','nt-room','nt-phone','nt-idcard','nt-address'].forEach(id => document.getElementById(id).value = '');
   loadTenants(); loadTenantDropdown();
@@ -866,17 +883,21 @@ async function openTenantDetail(tenantId) {
 async function submitBill() {
   if (!sbReady) { alert('ยังไม่ได้ตั้งค่า Supabase'); return; }
   const tenantId = document.getElementById('cb-tenant').value;
-  if (!tenantId) { alert('กรุณาเลือกผู้เช่า'); return; }
+  if (!tenantId) { showAlert('กรุณาเลือกผู้เช่า', 'warn'); return; }
+
+  const r = gv('cb-rent'), w = getWater(), e = getElec(), f = gv('cb-fine');
+  if (r <= 0 && w <= 0 && e <= 0) {
+    showAlert('กรุณากรอกค่าห้อง หรือค่าน้ำ หรือค่าไฟอย่างน้อย 1 รายการ', 'warn'); return;
+  }
   const sel = document.getElementById('cb-tenant');
   const t   = JSON.parse(sel.options[sel.selectedIndex].dataset.json);
   const pay = JSON.parse(localStorage.getItem('pay_settings') || '{}');
-  const r = gv('cb-rent'), w = getWater(), e = getElec(), f = gv('cb-fine');
   const wU = Math.max(0, gv('cb-wcurr') - gv('cb-wprev'));
   const eU = Math.max(0, gv('cb-ecurr') - gv('cb-eprev'));
   const bill = {
     tenant_id: tenantId, room: t.room, tenant_name: t.name,
     month_label: getMonthLabel(),
-    rent: r, water: w, elec: e, fine: f,
+    rent: r, water: w, elec: e, fine: f || 0,
     fine_reason: document.getElementById('cb-fine-reason').value.trim(),
     total: r + w + e + f, water_units: wU, elec_units: eU,
     status: 'pending',
@@ -884,8 +905,8 @@ async function submitBill() {
     bank_name: pay.bank || '', bank_number: pay.num || '', bank_account_name: pay.name || ''
   };
   const { error } = await sb.from('bills').insert(bill);
-  if (error) { alert('เกิดข้อผิดพลาด: ' + error.message); return; }
-  alert(`✅ สร้างบิลสำเร็จ!\nห้อง ${t.room} — ${t.name}\nยอด ${fmt(r+w+e+f)} บาท`);
+  if (error) { showAlert('เกิดข้อผิดพลาด: ' + error.message, 'danger'); return; }
+  showAlert(`✅ สร้างบิลสำเร็จ!\nห้อง ${t.room} — ${t.name}\nยอด ${fmt(r+w+e+f)} บาท`);
   showPage('bills');
 }
 
