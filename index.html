@@ -257,6 +257,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
     <div class="nav-label">จัดการ</div>
     <button class="nav-btn" onclick="showPage('create-bill')" id="nav-create-bill">➕ สร้างบิลใหม่</button>
     <button class="nav-btn" onclick="showPage('tenants')" id="nav-tenants">👥 ผู้เช่า</button>
+    <button class="nav-btn" onclick="showPage('summary')" id="nav-summary">💰 สรุปรายรับ</button>
 
   </div>
 </aside>
@@ -455,6 +456,40 @@ tr:hover td{background:rgba(255,255,255,.015)}
     </div>
   </div>
 
+  <!-- ===== SUMMARY ===== -->
+  <div class="page" id="page-summary">
+    <div class="page-hd"><h1>💰 สรุปรายรับ</h1><p>รายรับรวมแต่ละเดือนและแยกตามห้อง</p></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+      <select id="sum-year" onchange="loadSummary()" style="width:150px"></select>
+      <div style="font-size:12px;color:var(--muted)">แสดงเฉพาะบิลที่ยืนยันแล้ว</div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="cdot" style="background:var(--ok);box-shadow:0 0 7px rgba(52,211,153,.5)"></div>
+        <span class="card-title">รายรับรวมแต่ละเดือน</span>
+        <span style="margin-left:auto;font-family:'Prompt',sans-serif;font-size:18px;font-weight:800;color:var(--ok)" id="sum-total-year">—</span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>เดือน</th><th style="text-align:right">ค่าห้อง</th><th style="text-align:right">ค่าน้ำ</th><th style="text-align:right">ค่าไฟ</th><th style="text-align:right">ค่าปรับ</th><th style="text-align:right">รวม</th><th style="text-align:center">จำนวนห้อง</th></tr></thead>
+          <tbody id="sumMonthTable"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">กำลังโหลด...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="cdot" style="background:var(--water);box-shadow:0 0 7px rgba(56,189,248,.5)"></div>
+        <span class="card-title">รายรับแยกตามห้อง (ทั้งปี)</span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>ห้อง</th><th>ผู้เช่า</th><th style="text-align:right">ค่าห้อง</th><th style="text-align:right">ค่าน้ำ</th><th style="text-align:right">ค่าไฟ</th><th style="text-align:right">รวมทั้งปี</th><th style="text-align:center">บิล</th></tr></thead>
+          <tbody id="sumRoomTable"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">กำลังโหลด...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <!-- MODAL: Bill Detail -->
@@ -629,6 +664,7 @@ function showPage(id) {
   if (id === 'payments') loadPayments();
   if (id === 'tenants') loadTenants();
   if (id === 'create-bill') initCreateBill();
+  if (id === 'summary') initSummary();
   if (window.innerWidth <= 700) closeMobile();
 }
 
@@ -1114,6 +1150,104 @@ async function loadDashboard() {
       <td><button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openBillDetail('${b.id}')">🔍</button></td>
     </tr>`).join('')}</tbody>
   </table></div>`;
+}
+
+// ============================================================
+// SUMMARY
+// ============================================================
+const MSHORT2 = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+function initSummary() {
+  const sel = document.getElementById('sum-year');
+  if (!sel) return;
+  sel.innerHTML = '';
+  const curY = new Date().getFullYear() + 543;
+  for (let y = curY; y >= curY - 4; y--) {
+    const o = new Option('พ.ศ. ' + y, y);
+    if (y === curY) o.selected = true;
+    sel.appendChild(o);
+  }
+  loadSummary();
+}
+
+async function loadSummary() {
+  const yearBE = parseInt(document.getElementById('sum-year').value);
+  const yearCE = yearBE - 543;
+
+  // Fetch all confirmed bills for selected year
+  const { data: bills } = await sb.from('bills')
+    .select('*')
+    .eq('status', 'confirmed')
+    .order('issued_at', { ascending: true });
+
+  if (!bills) return;
+
+  // Filter by year (match month_label containing the BE year)
+  const yearBills = bills.filter(b => b.month_label && b.month_label.includes(String(yearBE)));
+
+  // ===== MONTHLY TABLE =====
+  const monthMap = {};
+  MSHORT2.forEach((m, i) => {
+    monthMap[m] = { label: m, rent: 0, water: 0, elec: 0, fine: 0, total: 0, rooms: new Set() };
+  });
+
+  yearBills.forEach(b => {
+    const mKey = MSHORT2.find(m => b.month_label.startsWith(m));
+    if (!mKey) return;
+    monthMap[mKey].rent  += b.rent  || 0;
+    monthMap[mKey].water += b.water || 0;
+    monthMap[mKey].elec  += b.elec  || 0;
+    monthMap[mKey].fine  += b.fine  || 0;
+    monthMap[mKey].total += b.total || 0;
+    monthMap[mKey].rooms.add(b.room);
+  });
+
+  let grandTotal = 0;
+  const monthRows = MSHORT2.map(m => {
+    const d = monthMap[m];
+    if (d.total === 0) return '';
+    grandTotal += d.total;
+    return `<tr>
+      <td style="font-weight:600">${m} ${yearBE}</td>
+      <td style="text-align:right;color:var(--rent)">${fmt(d.rent)}</td>
+      <td style="text-align:right;color:var(--water)">${fmt(d.water)}</td>
+      <td style="text-align:right;color:var(--elec)">${fmt(d.elec)}</td>
+      <td style="text-align:right;color:var(--danger)">${d.fine > 0 ? fmt(d.fine) : '—'}</td>
+      <td style="text-align:right;font-family:'Prompt',sans-serif;font-weight:700;color:var(--ok)">${fmt(d.total)}</td>
+      <td style="text-align:center;color:var(--muted)">${d.rooms.size} ห้อง</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('sumMonthTable').innerHTML = monthRows ||
+    '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">ไม่มีข้อมูลในปีนี้</td></tr>';
+  document.getElementById('sum-total-year').textContent = fmt(grandTotal) + ' บาท';
+
+  // ===== ROOM TABLE =====
+  const roomMap = {};
+  yearBills.forEach(b => {
+    const key = b.room;
+    if (!roomMap[key]) roomMap[key] = { room: b.room, name: b.tenant_name, rent: 0, water: 0, elec: 0, total: 0, count: 0 };
+    roomMap[key].rent  += b.rent  || 0;
+    roomMap[key].water += b.water || 0;
+    roomMap[key].elec  += b.elec  || 0;
+    roomMap[key].total += b.total || 0;
+    roomMap[key].count++;
+  });
+
+  const roomRows = Object.values(roomMap)
+    .sort((a, b) => a.room.localeCompare(b.room, 'th'))
+    .map(r => `<tr>
+      <td><strong style="color:var(--water)">ห้อง ${esc(r.room)}</strong></td>
+      <td>${esc(r.name)}</td>
+      <td style="text-align:right;color:var(--rent)">${fmt(r.rent)}</td>
+      <td style="text-align:right;color:var(--water)">${fmt(r.water)}</td>
+      <td style="text-align:right;color:var(--elec)">${fmt(r.elec)}</td>
+      <td style="text-align:right;font-family:'Prompt',sans-serif;font-weight:700;color:var(--ok)">${fmt(r.total)}</td>
+      <td style="text-align:center;color:var(--muted)">${r.count} บิล</td>
+    </tr>`).join('');
+
+  document.getElementById('sumRoomTable').innerHTML = roomRows ||
+    '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">ไม่มีข้อมูล</td></tr>';
 }
 
 // ============================================================
