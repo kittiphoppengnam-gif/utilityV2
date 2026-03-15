@@ -3,7 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>หอพัก — แผงควบคุมเจ้าของ</title>
+<title>JR Homeplace — แผงควบคุม</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEyMCIgZmlsbD0idXJsKCNvZykiLz4KICA8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Im9nIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmOTczMTYiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYTU4MGMiLz4KICA8L2xpbmVhckdyYWRpZW50PjwvZGVmcz4KICA8dGV4dCB4PSIyNTYiIHk9IjM0MCIgZm9udC1mYW1pbHk9IkFyaWFsIEJsYWNrLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQwIiBmb250LXdlaWdodD0iOTAwIgogICAgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiPkpSPC90ZXh0Pgo8L3N2Zz4=">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEyMCIgZmlsbD0idXJsKCNvZykiLz4KICA8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Im9nIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmOTczMTYiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYTU4MGMiLz4KICA8L2xpbmVhckdyYWRpZW50PjwvZGVmcz4KICA8dGV4dCB4PSIyNTYiIHk9IjM0MCIgZm9udC1mYW1pbHk9IkFyaWFsIEJsYWNrLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQwIiBmb250LXdlaWdodD0iOTAwIgogICAgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiPkpSPC90ZXh0Pgo8L3N2Zz4=">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="JR Admin">
+<meta name="theme-color" content="#f97316">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiSlIgSG9tZXBsYWNlIEFkbWluIiwic2hvcnRfbmFtZSI6IkpSIEFkbWluIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIWnBaWGRDYjNnOUlqQWdNQ0ExTVRJZ05URXlJajRLSUNBOGNtVmpkQ0IzYVdSMGFEMGlOVEV5SWlCb1pXbG5hSFE5SWpVeE1pSWdjbmc5SWpFeU1DSWdabWxzYkQwaWRYSnNLQ052WnlraUx6NEtJQ0E4WkdWbWN6NDhiR2x1WldGeVIzSmhaR2xsYm5RZ2FXUTlJbTluSWlCNE1UMGlNQ1VpSUhreFBTSXdKU0lnZURJOUlqRXdNQ1VpSUhreVBTSXhNREFsSWo0S0lDQWdJRHh6ZEc5d0lHOW1abk5sZEQwaU1DVWlJSE4wZVd4bFBTSnpkRzl3TFdOdmJHOXlPaU5tT1Rjek1UWWlMejQ4YzNSdmNDQnZabVp6WlhROUlqRXdNQ1VpSUhOMGVXeGxQU0p6ZEc5d0xXTnZiRzl5T2lObFlUVTRNR01pTHo0S0lDQThMMnhwYm1WaGNrZHlZV1JwWlc1MFBqd3ZaR1ZtY3o0S0lDQThkR1Y0ZENCNFBTSXlOVFlpSUhrOUlqTTBNQ0lnWm05dWRDMW1ZVzFwYkhrOUlrRnlhV0ZzSUVKc1lXTnJMSE5oYm5NdGMyVnlhV1lpSUdadmJuUXRjMmw2WlQwaU1qUXdJaUJtYjI1MExYZGxhV2RvZEQwaU9UQXdJZ29nSUNBZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSWdabWxzYkQwaWQyaHBkR1VpUGtwU1BDOTBaWGgwUGdvOEwzTjJaejQ9Iiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV0sInN0YXJ0X3VybCI6Ii9hZG1pbi5odG1sIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJ0aGVtZV9jb2xvciI6IiNmOTczMTYiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiI2YwZjRmOCJ9">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Prompt:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -256,7 +263,10 @@ tr:hover td{background:rgba(255,255,255,.015)}
 <aside class="sidebar" id="sidebar">
   <div class="sb-head">
     <div class="sb-logo">
-      <div class="sb-logo-icons"><span class="ico-w">💧</span><span class="ico-e">⚡</span></div>
+      <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#f97316,#ea580c);
+        display:flex;align-items:center;justify-content:center;
+        font-family:'Prompt',sans-serif;font-size:14px;font-weight:800;color:#fff;
+        box-shadow:0 3px 10px rgba(249,115,22,.4);flex-shrink:0">JR</div>
       แผงควบคุม
     </div>
     <button class="sb-close" onclick="toggleSB()">✕</button>
