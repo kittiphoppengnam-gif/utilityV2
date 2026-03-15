@@ -8,18 +8,18 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
-  --bg:#0b0f19; --surf:#131b2e; --surf2:#1a2540; --surf3:#1f2d4a;
-  --border:#243048; --border2:#2e3d5c;
-  --water:#38bdf8; --elec:#fbbf24; --rent:#a78bfa;
-  --ok:#34d399; --warn:#fb923c; --danger:#f87171;
-  --text:#e2e8f0; --muted:#64748b; --muted2:#4a5a72;
+  --bg:#f0f4f8; --surf:#ffffff; --surf2:#f8fafc; --surf3:#f1f5f9;
+  --border:#e2e8f0; --border2:#cbd5e1;
+  --water:#0284c7; --elec:#d97706; --rent:#7c3aed;
+  --ok:#059669; --warn:#ea580c; --danger:#dc2626;
+  --text:#0f172a; --muted:#64748b; --muted2:#94a3b8;
   --radius:16px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min-height:100vh;display:flex}
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:radial-gradient(ellipse 60% 40% at 15% 5%,rgba(56,189,248,.07) 0%,transparent 60%),
-             radial-gradient(ellipse 50% 35% at 85% 90%,rgba(167,139,250,.06) 0%,transparent 60%)}
+  background:radial-gradient(ellipse 60% 40% at 15% 5%,rgba(2,132,199,.05) 0%,transparent 60%),
+             radial-gradient(ellipse 50% 35% at 85% 90%,rgba(124,58,237,.04) 0%,transparent 60%)}
 
 /* CONFIG BANNER */
 #configBanner{position:fixed;top:0;left:0;right:0;z-index:999;background:#7c3aed;color:#fff;
@@ -27,7 +27,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 #configBanner a{color:#c4b5fd;cursor:pointer;text-decoration:underline}
 
 /* SIDEBAR */
-.sidebar{width:240px;background:var(--surf);border-right:1px solid var(--border);
+.sidebar{width:240px;background:var(--surf);border-right:1px solid var(--border);box-shadow:2px 0 12px rgba(0,0,0,.06);
   height:100vh;position:fixed;left:0;top:0;display:flex;flex-direction:column;z-index:50;
   transition:transform .3s}
 .sidebar.hide{transform:translateX(-100%)}
@@ -57,8 +57,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center}
 
 /* TOPBAR */
-.topbar{position:fixed;top:0;left:240px;right:0;height:54px;background:rgba(11,15,25,.9);
-  backdrop-filter:blur(10px);border-bottom:1px solid var(--border);
+.topbar{position:fixed;top:0;left:240px;right:0;height:54px;background:rgba(255,255,255,.92);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--border);box-shadow:0 1px 8px rgba(0,0,0,.06);
   display:flex;align-items:center;padding:0 20px;gap:12px;z-index:40;transition:left .3s}
 .topbar.wide{left:0}
 .btn-menu{background:var(--surf2);border:1px solid var(--border);color:var(--text);
@@ -83,7 +83,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .page.active{display:block}
 
 /* CARDS */
-.card{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px}
+.card{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px;box-shadow:0 1px 6px rgba(0,0,0,.05)}
 .card-head{display:flex;align-items:center;gap:8px;margin-bottom:18px}
 .cdot{width:9px;height:9px;border-radius:50%}
 .card-title{font-family:'Prompt',sans-serif;font-size:14px;font-weight:700}
@@ -111,13 +111,13 @@ input::placeholder,textarea::placeholder{color:var(--muted2)}
 .btn-danger{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:var(--danger)}
 .btn-danger:hover{background:rgba(248,113,113,.2)}
 .btn-ghost{background:var(--surf2);border:1px solid var(--border);color:var(--text)}
-.btn-ghost:hover{background:var(--border)}
+.btn-ghost:hover{background:var(--border2)}
 .btn-full{width:100%;justify-content:center}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
 
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
-.stat-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.stat-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:0 1px 6px rgba(0,0,0,.05)}
 .stat-val{font-family:'Prompt',sans-serif;font-size:22px;font-weight:800;margin-bottom:2px}
 .stat-lbl{font-size:12px;color:var(--muted)}
 
@@ -157,7 +157,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
 
 /* NOTIFICATIONS PANEL */
 .notif-panel{position:fixed;top:54px;right:0;width:320px;max-height:calc(100vh - 54px);
-  overflow-y:auto;background:var(--surf);border-left:1px solid var(--border);
+  overflow-y:auto;background:var(--surf);border-left:1px solid var(--border);box-shadow:-4px 0 16px rgba(0,0,0,.08);
   z-index:90;transform:translateX(100%);transition:transform .3s;padding:16px}
 .notif-panel.open{transform:translateX(0)}
 .notif-item{background:var(--surf2);border:1px solid var(--border);border-radius:11px;
@@ -171,7 +171,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
   backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center}
 .overlay.show{display:flex}
-.modal{background:var(--surf);border:1px solid var(--border);border-radius:20px;
+.modal{background:var(--surf);border:1px solid var(--border);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.15);
   padding:28px;max-width:520px;width:95%;max-height:90vh;overflow-y:auto;
   animation:popIn .3s cubic-bezier(.34,1.56,.64,1) both}
 .modal h2{font-family:'Prompt',sans-serif;font-size:17px;font-weight:700;margin-bottom:5px}
@@ -218,6 +218,21 @@ tr:hover td{background:rgba(255,255,255,.015)}
   padding:14px;margin-bottom:8px}
 .pay-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 
+/* ROOM GRID */
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:4px}
+.room-card{border-radius:14px;padding:14px 12px;cursor:pointer;transition:transform .15s,box-shadow .15s;
+  border:2px solid transparent;position:relative;height:120px;display:flex;flex-direction:column;justify-content:space-between}
+.room-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.room-card.status-pending{background:#fef2f2;border-color:#fca5a5}
+.room-card.status-partial{background:#fef2f2;border-color:#fca5a5}
+.room-card.status-paid{background:#fffbeb;border-color:#fde68a}
+.room-card.status-confirmed{background:#f0fdf4;border-color:#86efac}
+.room-card.status-empty{background:#f8fafc;border-color:#e2e8f0}
+.room-num{font-family:'Prompt',sans-serif;font-size:18px;font-weight:800}
+.room-name{font-size:11px;color:#64748b;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.room-amt{font-family:'Prompt',sans-serif;font-size:14px;font-weight:800;margin-top:8px}
+.room-status-dot{width:8px;height:8px;border-radius:50%;position:absolute;top:10px;right:10px}
+
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes popIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
@@ -260,6 +275,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
     <button class="nav-btn" onclick="showPage('summary')" id="nav-summary">💰 สรุปรายรับ</button>
 
   </div>
+
 </aside>
 
 <!-- TOPBAR -->
@@ -284,16 +300,32 @@ tr:hover td{background:rgba(255,255,255,.015)}
 
   <!-- ===== DASHBOARD ===== -->
   <div class="page active" id="page-dashboard">
-    <div class="page-hd"><h1>📊 ภาพรวม</h1><p>สรุปสถานะหอพักทั้งหมด</p></div>
-    <div class="stats-grid">
+    <div class="page-hd"><h1>📊 ภาพรวม</h1><p>สรุปสถานะทุกห้อง</p></div>
+    <!-- Stats row -->
+    <div class="stats-grid" style="margin-bottom:16px">
       <div class="stat-card"><div class="stat-val" id="st-rooms" style="color:var(--water)">—</div><div class="stat-lbl">ห้องทั้งหมด</div></div>
-      <div class="stat-card"><div class="stat-val" id="st-pending" style="color:var(--elec)">—</div><div class="stat-lbl">รอชำระ</div></div>
-      <div class="stat-card"><div class="stat-val" id="st-partial" style="color:var(--water)">—</div><div class="stat-lbl">ชำระบางส่วน</div></div>
-      <div class="stat-card"><div class="stat-val" id="st-confirm" style="color:var(--ok)">—</div><div class="stat-lbl">ยืนยันแล้ว</div></div>
+      <div class="stat-card"><div class="stat-val" id="st-pending" style="color:var(--danger)">—</div><div class="stat-lbl">🔴 รอชำระ</div></div>
+      <div class="stat-card"><div class="stat-val" id="st-partial" style="color:var(--elec)">—</div><div class="stat-lbl">🟡 รอยืนยัน</div></div>
+      <div class="stat-card"><div class="stat-val" id="st-confirm" style="color:var(--ok)">—</div><div class="stat-lbl">🟢 ชำระแล้ว</div></div>
     </div>
-    <div class="card">
-      <div class="card-head"><div class="cdot" style="background:var(--elec);box-shadow:0 0 7px rgba(251,191,36,.5)"></div><span class="card-title">บิลล่าสุด</span></div>
-      <div id="recentBills"><div class="empty"><div class="eico">📋</div><p>ยังไม่มีบิล</p></div></div>
+    <!-- Legend -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--muted)">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#fca5a5;display:inline-block"></span>รอชำระ / ค้างชำระ</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#fde68a;display:inline-block"></span>รอยืนยันสลิป</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#86efac;display:inline-block"></span>ยืนยันแล้ว</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#e2e8f0;display:inline-block"></span>ไม่มีบิล</span>
+    </div>
+    <!-- Room grid -->
+    <div class="card" style="padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="card-head" style="margin-bottom:0"><div class="cdot" style="background:var(--water)"></div><span class="card-title">ผังห้องพัก</span></div>
+        <select id="dash-month-filter" onchange="loadDashboard()" style="width:140px;font-size:12px;padding:6px 10px">
+          <option value="">เดือนล่าสุด</option>
+        </select>
+      </div>
+      <div class="room-grid" id="roomGrid">
+        <div class="empty" style="grid-column:1/-1"><div class="eico">🏠</div><p>กำลังโหลด...</p></div>
+      </div>
     </div>
   </div>
 
@@ -401,6 +433,19 @@ tr:hover td{background:rgba(255,255,255,.015)}
       <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="submitBill()">✅ สร้างและส่งบิล</button>
     </div>
 
+    <!-- ข้อมูลหอพัก -->
+    <div class="card">
+      <div class="card-head"><div class="cdot" style="background:var(--rent);box-shadow:0 0 7px rgba(167,139,250,.5)"></div><span class="card-title">🏠 ข้อมูลหอพัก (แสดงในใบเสร็จ)</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">ตั้งค่าครั้งเดียว บันทึกอัตโนมัติ</div>
+      <div class="fgrid">
+        <div class="fg full"><label>ชื่อหอพัก</label><input type="text" id="dorm-name" placeholder="เช่น หอพักสุขสบาย" oninput="saveDormSettings()"></div>
+        <div class="fg full"><label>ที่อยู่หอพัก</label><input type="text" id="dorm-address" placeholder="เลขที่ ถนน ตำบล อำเภอ จังหวัด" oninput="saveDormSettings()"></div>
+        <div class="fg"><label>เบอร์โทรหอพัก</label><input type="text" id="dorm-phone" placeholder="0xx-xxx-xxxx" oninput="saveDormSettings()"></div>
+        <div class="fg"><label>เลขประจำตัวผู้เสียภาษี</label><input type="text" id="dorm-owner" placeholder="เช่น 1234567890123" oninput="saveDormSettings()"></div>
+        <div class="fg"><label>ชื่อผู้รับเงิน (ลงนามในใบเสร็จ)</label><input type="text" id="dorm-signer" placeholder="ชื่อ-นามสกุล" oninput="saveDormSettings()"></div>
+      </div>
+    </div>
+
     <!-- ช่องทางชำระ (บันทึกไว้ใช้ทุกบิล) -->
     <div class="card">
       <div class="card-head"><div class="cdot" style="background:var(--ok);box-shadow:0 0 7px rgba(52,211,153,.5)"></div><span class="card-title">💳 ช่องทางชำระเงิน</span></div>
@@ -500,7 +545,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
     <div id="bd-body"></div>
     <div class="modal-btns">
       <button class="btn btn-ghost" onclick="closeModal('billDetailOverlay')">ปิด</button>
-      <button class="btn btn-success" id="bd-confirm-btn" onclick="confirmBill()" style="display:none">✅ ยืนยันรับชำระแล้ว</button>
+
     </div>
   </div>
 </div>
@@ -598,6 +643,7 @@ function initSupa() {
   loadPaySettings();
   loadDashboard();
   loadNotifications();
+  loadDormSettings();
 })();
 
 function saveSettings() {
@@ -651,6 +697,7 @@ function initCreateBill() {
   }
   // Reload tenant dropdown every time page opens
   loadTenantDropdown();
+  loadDormSettings();
 }
 
 function showPage(id) {
@@ -751,6 +798,26 @@ function loadPaySettings() {
   if (s.name) document.getElementById('pay-name').value = s.name;
   if (qrBase64) showQrPrev(qrBase64);
 }
+
+function saveDormSettings() {
+  localStorage.setItem('dorm_settings', JSON.stringify({
+    name:    document.getElementById('dorm-name').value.trim(),
+    address: document.getElementById('dorm-address').value.trim(),
+    phone:   document.getElementById('dorm-phone').value.trim(),
+    owner:   document.getElementById('dorm-owner').value.trim(),
+    signer:  document.getElementById('dorm-signer').value.trim()
+  }));
+}
+
+function loadDormSettings() {
+  const d = JSON.parse(localStorage.getItem('dorm_settings') || '{}');
+  if (d.name)    document.getElementById('dorm-name').value    = d.name;
+  if (d.address) document.getElementById('dorm-address').value = d.address;
+  if (d.phone)   document.getElementById('dorm-phone').value   = d.phone;
+  if (d.owner)   document.getElementById('dorm-owner').value   = d.owner;
+  const s = document.getElementById('dorm-signer');
+  if (s && d.signer) s.value = d.signer;
+}
 function savePaySettings() {
   localStorage.setItem('pay_settings', JSON.stringify({
     bank: document.getElementById('pay-bank').value.trim(),
@@ -800,7 +867,12 @@ function onTenantSelect() {
   const opt = sel.options[sel.selectedIndex];
   if (!opt.dataset.json) return;
   const t = JSON.parse(opt.dataset.json);
-  const s = JSON.parse(localStorage.getItem('pay_settings') || '{}');
+  // Load saved rent for this tenant
+  const rentMap = JSON.parse(localStorage.getItem('rent_map') || '{}');
+  if (rentMap[t.id]) {
+    document.getElementById('cb-rent').value = rentMap[t.id];
+    updateGrand();
+  }
 }
 
 async function loadTenants() {
@@ -930,6 +1002,12 @@ async function submitBill() {
   const pay = JSON.parse(localStorage.getItem('pay_settings') || '{}');
   const wU = Math.max(0, gv('cb-wcurr') - gv('cb-wprev'));
   const eU = Math.max(0, gv('cb-ecurr') - gv('cb-eprev'));
+  // Save rent for this tenant
+  if (r > 0) {
+    const rentMap = JSON.parse(localStorage.getItem('rent_map') || '{}');
+    rentMap[tenantId] = r;
+    localStorage.setItem('rent_map', JSON.stringify(rentMap));
+  }
   const bill = {
     tenant_id: tenantId, room: t.room, tenant_name: t.name,
     month_label: getMonthLabel(),
@@ -1032,7 +1110,7 @@ async function openBillDetail(billId) {
 
   document.getElementById('bd-body').innerHTML = html;
   const canConfirm = b.status === 'paid' || (pays && pays.some(p => p.status === 'pending_verify'));
-  document.getElementById('bd-confirm-btn').style.display = (b.status!=='confirmed' && pays?.length) ? 'flex' : 'none';
+
   openModal('billDetailOverlay');
 }
 
@@ -1063,8 +1141,10 @@ async function doVerify(approve) {
   const { data: pays } = await sb.from('payments').select('*').eq('bill_id', activeVerifyBillId);
   const { data: bill } = await sb.from('bills').select('total').eq('id', activeVerifyBillId).single();
   const paidTotal = pays.filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
+  const hasPending = pays.some(p=>p.status==='pending_verify');
   let newStatus = 'pending';
-  if (paidTotal >= bill.total) newStatus = 'paid';
+  if (hasPending) newStatus = 'paid';
+  else if (paidTotal >= bill.total) newStatus = 'paid';
   else if (paidTotal > 0) newStatus = 'partial';
   await sb.from('bills').update({ status: newStatus }).eq('id', activeVerifyBillId);
   closeModal('verifyOverlay');
@@ -1077,8 +1157,10 @@ async function verifyPayment(payId, billId, approve, amount) {
   const { data: pays } = await sb.from('payments').select('*').eq('bill_id', billId);
   const { data: bill } = await sb.from('bills').select('total').eq('id', billId).single();
   const paidTotal = pays.filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
+  const stillPending = pays.some(p=>p.status==='pending_verify');
   let newStatus = 'pending';
-  if (paidTotal >= bill.total) newStatus = 'paid';
+  if (stillPending) newStatus = 'paid';
+  else if (paidTotal >= bill.total) newStatus = 'paid';
   else if (paidTotal > 0) newStatus = 'partial';
   await sb.from('bills').update({ status: newStatus }).eq('id', billId);
   openBillDetail(billId);
@@ -1131,25 +1213,105 @@ async function loadPayments() {
 // ============================================================
 async function loadDashboard() {
   if (!sbReady) return;
-  const { data: tenants } = await sb.from('tenants').select('id');
-  const { data: bills }   = await sb.from('bills').select('*').order('issued_at',{ascending:false}).limit(8);
+
+  // Populate month filter dropdown
+  const mf = document.getElementById('dash-month-filter');
+  if (mf && mf.options.length <= 1) {
+    const { data: allBills } = await sb.from('bills').select('month_label').order('issued_at', {ascending:false});
+    const labels = [...new Set((allBills||[]).map(b=>b.month_label).filter(Boolean))];
+    labels.forEach(l => {
+      if (!mf.querySelector(`option[value="${l}"]`)) {
+        const o = new Option(l, l); mf.appendChild(o);
+      }
+    });
+  }
+
+  const selectedMonth = mf?.value || '';
+
+  // Fetch tenants + latest bills
+  const { data: tenants } = await sb.from('tenants').select('*').order('room');
+  let billsQuery = sb.from('bills').select('*').order('issued_at', {ascending:false});
+  if (selectedMonth) billsQuery = billsQuery.eq('month_label', selectedMonth);
+  const { data: allBillsData } = await billsQuery;
+
+  // For each tenant, find latest bill (or filtered month bill)
+  const tenantBillMap = {};
+  (allBillsData||[]).forEach(b => {
+    if (!tenantBillMap[b.tenant_id]) tenantBillMap[b.tenant_id] = b;
+  });
+
+  // Fetch payments for bills that have partial status to calc remaining
+  const partialBillIds = Object.values(tenantBillMap).filter(b=>b.status==='partial').map(b=>b.id);
+  const paymentMap = {};
+  if (partialBillIds.length) {
+    const { data: pays } = await sb.from('payments').select('*').in('bill_id', partialBillIds);
+    (pays||[]).forEach(p => {
+      if (!paymentMap[p.bill_id]) paymentMap[p.bill_id] = [];
+      paymentMap[p.bill_id].push(p);
+    });
+  }
+
+  // Stats
+  const bills = Object.values(tenantBillMap);
   document.getElementById('st-rooms').textContent   = tenants?.length || 0;
-  document.getElementById('st-pending').textContent = (bills||[]).filter(b=>b.status==='pending').length;
-  document.getElementById('st-partial').textContent = (bills||[]).filter(b=>b.status==='partial').length;
-  document.getElementById('st-confirm').textContent = (bills||[]).filter(b=>b.status==='confirmed').length;
-  const rb = document.getElementById('recentBills');
-  if (!bills?.length) { rb.innerHTML = '<div class="empty"><div class="eico">📋</div><p>ยังไม่มีบิล</p></div>'; return; }
-  rb.innerHTML = `<div class="tbl-wrap"><table>
-    <thead><tr><th>ห้อง</th><th>ผู้เช่า</th><th>เดือน</th><th>ยอด</th><th>สถานะ</th><th></th></tr></thead>
-    <tbody>${bills.map(b=>`<tr>
-      <td><strong style="color:var(--water)">ห้อง ${esc(b.room)}</strong></td>
-      <td>${esc(b.tenant_name)}</td>
-      <td>${esc(b.month_label)}</td>
-      <td style="font-family:'Prompt',sans-serif;font-weight:700">${fmt(b.total)} บาท</td>
-      <td>${statusPill(b.status)}</td>
-      <td><button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openBillDetail('${b.id}')">🔍</button></td>
-    </tr>`).join('')}</tbody>
-  </table></div>`;
+  document.getElementById('st-pending').textContent = bills.filter(b=>b.status==='pending'||b.status==='partial').length;
+  document.getElementById('st-partial').textContent = bills.filter(b=>b.status==='paid').length;
+  document.getElementById('st-confirm').textContent = bills.filter(b=>b.status==='confirmed').length;
+
+  // Render room grid
+  const grid = document.getElementById('roomGrid');
+  if (!tenants?.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="eico">👥</div><p>ยังไม่มีผู้เช่า</p></div>';
+    return;
+  }
+
+  grid.innerHTML = tenants.map(t => {
+    const bill = tenantBillMap[t.id];
+    if (!bill) {
+      return `<div class="room-card status-empty" onclick="showPage('tenants')">
+        <div>
+          <div class="room-num" style="color:#94a3b8">${esc(t.room)}</div>
+          <div class="room-name">${esc(t.name)}</div>
+        </div>
+        <div class="room-amt" style="color:#94a3b8;font-size:12px">ไม่มีบิล</div>
+        <div class="room-status-dot" style="background:#cbd5e1"></div>
+      </div>`;
+    }
+
+    // Calc remaining for partial
+    let displayAmt = bill.total;
+    let amtColor = '#dc2626';
+    let cardClass = 'status-pending';
+    let dotColor = '#f87171';
+    let amtLabel = 'รอชำระ';
+
+    if (bill.status === 'partial') {
+      // ชำระบางส่วน - แสดงยอดที่เหลือ สีแดง
+      const pays = paymentMap[bill.id] || [];
+      const paid = pays.filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
+      displayAmt = Math.max(0, bill.total - paid);
+      amtColor = '#dc2626'; cardClass = 'status-partial'; dotColor = '#f87171'; amtLabel = 'ค้างชำระ';
+    } else if (bill.status === 'paid') {
+      // ส่งสลิปแล้วรอยืนยัน - สีเหลือง แสดงยอดเต็ม
+      displayAmt = bill.total;
+      amtColor = '#92400e'; cardClass = 'status-paid'; dotColor = '#fbbf24'; amtLabel = 'รอยืนยันสลิป';
+    } else if (bill.status === 'confirmed') {
+      displayAmt = bill.total; amtColor = '#166534'; cardClass = 'status-confirmed'; dotColor = '#34d399'; amtLabel = 'ยืนยันแล้ว';
+    }
+
+    return `<div class="room-card ${cardClass}" onclick="openBillDetail('${bill.id}')">
+      <div>
+        <div class="room-num" style="color:${amtColor}">${esc(t.room)}</div>
+        <div class="room-name">${esc(t.name)}</div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:2px">${esc(bill.month_label)}</div>
+      </div>
+      <div>
+        <div class="room-amt" style="color:${amtColor}">${fmt(displayAmt)}</div>
+        <div style="font-size:10px;font-weight:700;color:${amtColor};margin-top:1px">${amtLabel}</div>
+      </div>
+      <div class="room-status-dot" style="background:${dotColor}"></div>
+    </div>`;
+  }).join('');
 }
 
 // ============================================================
