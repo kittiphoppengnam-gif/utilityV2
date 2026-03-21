@@ -16,8 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="JR Admin">
 <meta name="theme-color" content="#f97316">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiSlIgSG9tZXBsYWNlIEFkbWluIiwic2hvcnRfbmFtZSI6IkpSIEFkbWluIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIWnBaWGRDYjNnOUlqQWdNQ0ExTVRJZ05URXlJajRLSUNBOGNtVmpkQ0IzYVdSMGFEMGlOVEV5SWlCb1pXbG5hSFE5SWpVeE1pSWdjbmc5SWpFeU1DSWdabWxzYkQwaWRYSnNLQ052WnlraUx6NEtJQ0E4WkdWbWN6NDhiR2x1WldGeVIzSmhaR2xsYm5RZ2FXUTlJbTluSWlCNE1UMGlNQ1VpSUhreFBTSXdKU0lnZURJOUlqRXdNQ1VpSUhreVBTSXhNREFsSWo0S0lDQWdJRHh6ZEc5d0lHOW1abk5sZEQwaU1DVWlJSE4wZVd4bFBTSnpkRzl3TFdOdmJHOXlPaU5tT1Rjek1UWWlMejQ4YzNSdmNDQnZabVp6WlhROUlqRXdNQ1VpSUhOMGVXeGxQU0p6ZEc5d0xXTnZiRzl5T2lObFlUVTRNR01pTHo0S0lDQThMMnhwYm1WaGNrZHlZV1JwWlc1MFBqd3ZaR1ZtY3o0S0lDQThkR1Y0ZENCNFBTSXlOVFlpSUhrOUlqTTBNQ0lnWm05dWRDMW1ZVzFwYkhrOUlrRnlhV0ZzSUVKc1lXTnJMSE5oYm5NdGMyVnlhV1lpSUdadmJuUXRjMmw2WlQwaU1qUXdJaUJtYjI1MExYZGxhV2RvZEQwaU9UQXdJZ29nSUNBZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSWdabWxzYkQwaWQyaHBkR1VpUGtwU1BDOTBaWGgwUGdvOEwzTjJaejQ9Iiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV0sInN0YXJ0X3VybCI6Ii9hZG1pbi5odG1sIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJ0aGVtZV9jb2xvciI6IiNmOTczMTYiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiI2YwZjRmOCJ9">
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Prompt:wght@600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Prompt:wght@600;700;800&display=swap" rel="stylesheet"></noscript>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Prompt:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -636,6 +635,48 @@ tr:hover td{background:rgba(255,255,255,.015)}
 <div id="mBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:45" onclick="closeMobile()"></div>
 
 <script>
+// Critical UI functions - defined first to prevent "not defined" errors
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const nb = document.getElementById('nav-' + id);
+  if (nb) nb.classList.add('active');
+  if (id === 'dashboard') loadDashboard();
+  if (id === 'bills') loadBills();
+  if (id === 'payments') loadPayments();
+  if (id === 'tenants') loadTenants();
+  if (id === 'create-bill') initCreateBill();
+  if (id === 'summary') initSummary();
+  if (window.innerWidth <= 700) closeMobile();
+}
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function openModal(id)  { document.getElementById(id).classList.add('show'); }
+let sbVisible2 = true;
+function toggleSB() {
+  if (window.innerWidth <= 700) {
+    const sb = document.getElementById('sidebar');
+    const show = !sb.classList.contains('mobile-open');
+    sb.classList.toggle('mobile-open', show);
+    document.getElementById('mBackdrop').style.display = show ? 'block' : 'none';
+  } else {
+    sbVisible2 = !sbVisible2;
+    document.getElementById('sidebar').classList.toggle('hide', !sbVisible2);
+    document.getElementById('topbar').classList.toggle('wide', !sbVisible2);
+    document.getElementById('main').classList.toggle('wide', !sbVisible2);
+  }
+}
+function closeMobile() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('mBackdrop').style.display = 'none';
+}
+let notifOpen = false;
+function toggleNotif() {
+  notifOpen = !notifOpen;
+  document.getElementById('notifPanel').classList.toggle('open', notifOpen);
+  if (notifOpen) loadNotifications();
+}
+
 // ============================================================
 // CONFIG
 // ============================================================
