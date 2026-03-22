@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Prompt:wght@400;600;700;800&display=swap" rel="stylesheet">
 <!-- Supabase loaded async, deferred init -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --bg:#f0f4f8;--surf:#ffffff;--surf2:#f8fafc;--surf3:#f1f5f9;
@@ -249,12 +249,15 @@ tr:hover td{background:rgba(0,0,0,.012)}
   <div class="page" id="page-bills">
     <div class="page-hd"><h1>📋 บิลทั้งหมด</h1><p>ดูและจัดการบิลทุกห้อง</p></div>
     <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <select id="filterStatus" onchange="loadBills()" style="width:160px">
+      <select id="filterStatus" onchange="loadBills()" style="width:150px">
         <option value="">ทุกสถานะ</option>
         <option value="pending">รอชำระ</option>
         <option value="partial">ชำระบางส่วน</option>
         <option value="paid">รอยืนยัน</option>
         <option value="confirmed">ยืนยันแล้ว</option>
+      </select>
+      <select id="filterMonth" onchange="loadBills()" style="width:130px">
+        <option value="">ทุกเดือน</option>
       </select>
     </div>
     <div class="tbl-wrap">
@@ -494,183 +497,176 @@ tr:hover td{background:rgba(0,0,0,.012)}
 
 <script>
 // ============================================================
-// CONFIG & GLOBALS
+// CONFIG
 // ============================================================
 const SUPA_URL = 'https://mdnupimieldwqrgxczgu.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kbnVwaW1pZWxkd3FyZ3hjemd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyODQwNDAsImV4cCI6MjA4Nzg2MDA0MH0.r_z0eYczkO4DfElyU0eVK4CFXQx7r_EmwCepQKhMUQM';
 
-let sb = null;
+// Create Supabase client immediately (script is sync now)
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
 let qrBase64 = '';
 let activeBillId = null;
-let notifOpen = false;
-let sbVisible2 = true;
+let notifOpen    = false;
+let sbVisible2   = true;
 
-// ── In-memory cache ──────────────────────────────────────────
-const cache = {
-  tenants: null,          // { data, ts }
-  bills: {},              // key → { data, ts }
-  payments: null,
-  notifications: null,
-  TTL: 30_000,            // 30s
-  get(store, key = 'default') {
-    const entry = store === 'tenants'        ? this.tenants
-                : store === 'payments'       ? this.payments
-                : store === 'notifications'  ? this.notifications
-                : this.bills[key];
-    if (!entry) return null;
-    if (Date.now() - entry.ts > this.TTL) return null;
-    return entry.data;
-  },
-  set(store, data, key = 'default') {
-    const entry = { data, ts: Date.now() };
-    if (store === 'tenants')       this.tenants       = entry;
-    else if (store === 'payments') this.payments       = entry;
-    else if (store === 'notifications') this.notifications = entry;
-    else this.bills[key] = entry;
-  },
-  invalidate(...stores) {
-    stores.forEach(s => {
-      if (s === 'tenants')       this.tenants = null;
-      else if (s === 'payments') this.payments = null;
-      else if (s === 'notifications') this.notifications = null;
-      else this.bills = {};
-    });
-  }
-};
-
-// ── Helpers ──────────────────────────────────────────────────
-const gv  = id => parseFloat(document.getElementById(id).value) || 0;
-const fmt = n  => (parseFloat(n)||0).toLocaleString('th-TH', { minimumFractionDigits: 2 });
-const esc = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// ============================================================
+// FAST NUMBER FORMATTER — avoid toLocaleString per-call
+// ============================================================
+const _nf = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2 });
+const fmt  = n => _nf.format(parseFloat(n) || 0);
+const gv   = id => parseFloat(document.getElementById(id).value) || 0;
+const esc  = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 const MSHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 
-// Read localStorage once
-const _ls = {
-  paySettings: null,
-  dormSettings: null,
-  rentMap: null,
-  getPaySettings()  { return this.paySettings  ??= JSON.parse(localStorage.getItem('pay_settings')  || '{}'); },
-  getDormSettings() { return this.dormSettings ??= JSON.parse(localStorage.getItem('dorm_settings') || '{}'); },
-  getRentMap()      { return this.rentMap      ??= JSON.parse(localStorage.getItem('rent_map')       || '{}'); },
-  savePaySettings(v)  { this.paySettings  = v; localStorage.setItem('pay_settings',  JSON.stringify(v)); },
-  saveDormSettings(v) { this.dormSettings = v; localStorage.setItem('dorm_settings', JSON.stringify(v)); },
-  saveRentMap(v)      { this.rentMap      = v; localStorage.setItem('rent_map',       JSON.stringify(v)); },
+// ============================================================
+// CACHE — stale-while-revalidate style, 60s TTL
+// ============================================================
+const cache = {
+  _store: {},
+  TTL: 60_000,
+  get(key) {
+    const e = this._store[key];
+    if (!e) return null;
+    if (Date.now() - e.ts > this.TTL) { delete this._store[key]; return null; }
+    return e.data;
+  },
+  set(key, data) { this._store[key] = { data, ts: Date.now() }; },
+  del(...keys)   { keys.forEach(k => {
+    if (k === 'bills') Object.keys(this._store).filter(x=>x.startsWith('bills')).forEach(x=>delete this._store[x]);
+    else delete this._store[k];
+  }); },
+  // Shared month-labels list (used by both dashboard & bills page)
+  monthLabels: null,
 };
 
-// ── Status pill ──────────────────────────────────────────────
-function statusPill(s) {
-  const map = {
-    pending:   ['pill-pending',   '⏳ รอชำระ'],
-    partial:   ['pill-partial',   '💧 ชำระบางส่วน'],
-    paid:      ['pill-paid',      '📤 รอยืนยัน'],
-    confirmed: ['pill-confirmed', '✅ ยืนยันแล้ว']
-  };
-  const [cls, txt] = map[s] || ['pill-pending', s];
-  return `<span class="pill ${cls}">${txt}</span>`;
+// Shared in-memory read of month labels (one query, shared everywhere)
+async function getMonthLabels(force = false) {
+  if (!force && cache.monthLabels) return cache.monthLabels;
+  const { data } = await sb.from('bills').select('month_label').order('issued_at', { ascending: false });
+  const labels = [...new Set((data||[]).map(b => b.month_label).filter(Boolean))];
+  cache.monthLabels = labels;
+  return labels;
 }
 
-// ── Alert ────────────────────────────────────────────────────
-function showAlert(msg, type = 'warn') {
+// ============================================================
+// LOCALSTORAGE (parsed once)
+// ============================================================
+const _ls = {
+  _p: {},
+  _g(k, def='{}') { return this._p[k] ??= JSON.parse(localStorage.getItem(k)||def); },
+  _s(k,v)         { this._p[k]=v; localStorage.setItem(k,JSON.stringify(v)); },
+  getPaySettings()  { return this._g('pay_settings'); },
+  getDormSettings() { return this._g('dorm_settings'); },
+  getRentMap()      { return this._g('rent_map'); },
+  savePaySettings(v)  { this._s('pay_settings',v); },
+  saveDormSettings(v) { this._s('dorm_settings',v); },
+  saveRentMap(v)      { this._s('rent_map',v); },
+};
+
+// ============================================================
+// STATUS PILL (pre-built strings — no branching per render)
+// ============================================================
+const PILLS = {
+  pending:   '<span class="pill pill-pending">⏳ รอชำระ</span>',
+  partial:   '<span class="pill pill-partial">💧 ชำระบางส่วน</span>',
+  paid:      '<span class="pill pill-paid">📤 รอยืนยัน</span>',
+  confirmed: '<span class="pill pill-confirmed">✅ ยืนยันแล้ว</span>',
+};
+const statusPill = s => PILLS[s] || `<span class="pill pill-pending">${s}</span>`;
+
+// ============================================================
+// ALERT
+// ============================================================
+function showAlert(msg, type='warn') {
   let el = document.getElementById('globalAlert');
   if (!el) {
-    el = document.createElement('div');
-    el.id = 'globalAlert';
-    el.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:999;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;font-family:Sarabun,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.4);transition:opacity .3s;min-width:280px;text-align:center;';
+    el = Object.assign(document.createElement('div'), { id:'globalAlert' });
+    el.style.cssText='position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:999;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;font-family:Sarabun,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.4);transition:opacity .3s;min-width:280px;text-align:center;';
     document.body.appendChild(el);
   }
-  const styles = {
-    warn:   'background:#1a2540;border:1px solid rgba(251,191,36,.5);color:#fbbf24;',
-    danger: 'background:#1a2540;border:1px solid rgba(248,113,113,.5);color:#f87171;',
-    ok:     'background:#1a2540;border:1px solid rgba(52,211,153,.5);color:#34d399;',
-  };
-  Object.assign(el.style, { opacity: '1', display: 'block' });
-  el.style.cssText += styles[type] || styles.warn;
-  el.textContent = msg;
+  const s={warn:'background:#1a2540;border:1px solid rgba(251,191,36,.5);color:#fbbf24;',
+           danger:'background:#1a2540;border:1px solid rgba(248,113,113,.5);color:#f87171;',
+           ok:'background:#1a2540;border:1px solid rgba(52,211,153,.5);color:#34d399;'};
+  el.style.cssText += s[type]||s.warn;
+  el.textContent=msg; el.style.opacity='1'; el.style.display='block';
   clearTimeout(el._t);
-  el._t = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.style.display = 'none', 300); }, 3000);
+  el._t=setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.style.display='none',300);},3000);
 }
 
 // ============================================================
-// INIT — wait for Supabase script
+// INIT
 // ============================================================
-function boot() {
-  sb = supabase.createClient(SUPA_URL, SUPA_KEY);
-
-  // Realtime: only listen for notifications (lightweight)
+(function boot() {
+  // Realtime: notifications only
   sb.channel('notif-ch')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, handleNewNotif)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications'},handleNewNotif)
     .subscribe();
 
-  // Load settings from localStorage (sync, instant)
   loadPaySettings();
   loadDormSettings();
 
-  // Kick off initial data loads in parallel
-  Promise.all([loadDashboard(), loadNotifications()]);
-}
-
-// Wait for defer'd script
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => setTimeout(boot, 0));
-} else {
-  setTimeout(boot, 0);
-}
+  // Fire dashboard + notifications in parallel, don't block paint
+  requestAnimationFrame(() => {
+    Promise.all([loadDashboard(), loadNotifications()]);
+  });
+})();
 
 // ============================================================
 // NAVIGATION
 // ============================================================
 function showPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  document.getElementById('nav-' + id)?.classList.add('active');
-  if (id === 'dashboard')   loadDashboard();
-  if (id === 'bills')       loadBills();
-  if (id === 'payments')    loadPayments();
-  if (id === 'tenants')     loadTenants();
-  if (id === 'create-bill') initCreateBill();
-  if (id === 'summary')     initSummary();
-  if (window.innerWidth <= 700) closeMobile();
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('nav-'+id)?.classList.add('active');
+  if (id==='dashboard')   loadDashboard();
+  if (id==='bills')       loadBills();
+  if (id==='payments')    loadPayments();
+  if (id==='tenants')     loadTenants();
+  if (id==='create-bill') initCreateBill();
+  if (id==='summary')     initSummary();
+  if (window.innerWidth<=700) closeMobile();
 }
 
 function toggleSB() {
-  if (window.innerWidth <= 700) {
-    const show = !document.getElementById('sidebar').classList.contains('mobile-open');
-    document.getElementById('sidebar').classList.toggle('mobile-open', show);
-    document.getElementById('mBackdrop').style.display = show ? 'block' : 'none';
+  if (window.innerWidth<=700) {
+    const show=!document.getElementById('sidebar').classList.contains('mobile-open');
+    document.getElementById('sidebar').classList.toggle('mobile-open',show);
+    document.getElementById('mBackdrop').style.display=show?'block':'none';
   } else {
-    sbVisible2 = !sbVisible2;
-    document.getElementById('sidebar').classList.toggle('hide', !sbVisible2);
-    document.getElementById('topbar').classList.toggle('wide', !sbVisible2);
-    document.getElementById('main').classList.toggle('wide', !sbVisible2);
+    sbVisible2=!sbVisible2;
+    document.getElementById('sidebar').classList.toggle('hide',!sbVisible2);
+    document.getElementById('topbar').classList.toggle('wide',!sbVisible2);
+    document.getElementById('main').classList.toggle('wide',!sbVisible2);
   }
 }
 function closeMobile() {
   document.getElementById('sidebar').classList.remove('mobile-open');
-  document.getElementById('mBackdrop').style.display = 'none';
+  document.getElementById('mBackdrop').style.display='none';
 }
 function toggleNotif() {
-  notifOpen = !notifOpen;
-  document.getElementById('notifPanel').classList.toggle('open', notifOpen);
+  notifOpen=!notifOpen;
+  document.getElementById('notifPanel').classList.toggle('open',notifOpen);
   if (notifOpen) loadNotifications();
 }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-function openModal(id)  { document.getElementById(id).classList.add('show'); }
+const closeModal = id => document.getElementById(id).classList.remove('show');
+const openModal  = id => document.getElementById(id).classList.add('show');
 
 // ============================================================
-// CREATE BILL — init
+// CREATE BILL
 // ============================================================
 function initCreateBill() {
-  const now  = new Date();
-  const mSel = document.getElementById('cb-month');
-  if (mSel) mSel.value = now.getMonth() + 1;
-  const ySel = document.getElementById('cb-year');
-  if (ySel && ySel.options.length === 0) {
-    const curY = now.getFullYear() + 543;
-    for (let yr = curY + 1; yr >= curY - 5; yr--) {
-      const o = new Option('พ.ศ. ' + yr, yr);
-      if (yr === curY) o.selected = true;
+  const now=new Date();
+  const mSel=document.getElementById('cb-month');
+  if (mSel) mSel.value=now.getMonth()+1;
+  const ySel=document.getElementById('cb-year');
+  if (ySel&&ySel.options.length===0) {
+    const curY=now.getFullYear()+543;
+    for(let yr=curY+1;yr>=curY-5;yr--) {
+      const o=new Option('พ.ศ. '+yr,yr);
+      if(yr===curY) o.selected=true;
       ySel.appendChild(o);
     }
   }
@@ -679,200 +675,177 @@ function initCreateBill() {
 }
 
 function getMonthLabel() {
-  const m = parseInt(document.getElementById('cb-month').value);
-  const y = document.getElementById('cb-year').value;
-  return `${MSHORT[m - 1]} ${y}`;
+  const m=parseInt(document.getElementById('cb-month').value);
+  const y=document.getElementById('cb-year').value;
+  return `${MSHORT[m-1]} ${y}`;
 }
 
 // ============================================================
 // CALC
 // ============================================================
 function calcWater() {
-  const u = Math.max(0, gv('cb-wcurr') - gv('cb-wprev'));
-  const t = u * gv('cb-wrate');
-  document.getElementById('cb-wunits').textContent = u.toLocaleString() + ' หน่วย';
-  document.getElementById('cb-wtotal').textContent = fmt(t) + ' บาท';
+  const u=Math.max(0,gv('cb-wcurr')-gv('cb-wprev')), t=u*gv('cb-wrate');
+  document.getElementById('cb-wunits').textContent=u.toLocaleString()+' หน่วย';
+  document.getElementById('cb-wtotal').textContent=fmt(t)+' บาท';
   updateGrand();
 }
 function calcElec() {
-  const u = Math.max(0, gv('cb-ecurr') - gv('cb-eprev'));
-  const t = u * gv('cb-erate');
-  document.getElementById('cb-eunits').textContent = u.toLocaleString() + ' หน่วย';
-  document.getElementById('cb-etotal').textContent = fmt(t) + ' บาท';
+  const u=Math.max(0,gv('cb-ecurr')-gv('cb-eprev')), t=u*gv('cb-erate');
+  document.getElementById('cb-eunits').textContent=u.toLocaleString()+' หน่วย';
+  document.getElementById('cb-etotal').textContent=fmt(t)+' บาท';
   updateGrand();
 }
-const getWater = () => Math.max(0, gv('cb-wcurr') - gv('cb-wprev')) * gv('cb-wrate');
-const getElec  = () => Math.max(0, gv('cb-ecurr') - gv('cb-eprev')) * gv('cb-erate');
-
+const getWater=()=>Math.max(0,gv('cb-wcurr')-gv('cb-wprev'))*gv('cb-wrate');
+const getElec =()=>Math.max(0,gv('cb-ecurr')-gv('cb-eprev'))*gv('cb-erate');
 function updateGrand() {
-  const r = gv('cb-rent'), w = getWater(), e = getElec(), f = gv('cb-fine');
-  document.getElementById('s-rent').textContent  = fmt(r) + ' บาท';
-  document.getElementById('s-water').textContent = fmt(w) + ' บาท';
-  document.getElementById('s-elec').textContent  = fmt(e) + ' บาท';
-  document.getElementById('s-fine').textContent  = fmt(f) + ' บาท';
-  document.getElementById('s-grand').textContent = fmt(r + w + e + f) + ' บาท';
+  const r=gv('cb-rent'),w=getWater(),e=getElec(),f=gv('cb-fine');
+  document.getElementById('s-rent').textContent =fmt(r)+' บาท';
+  document.getElementById('s-water').textContent=fmt(w)+' บาท';
+  document.getElementById('s-elec').textContent =fmt(e)+' บาท';
+  document.getElementById('s-fine').textContent =fmt(f)+' บาท';
+  document.getElementById('s-grand').textContent=fmt(r+w+e+f)+' บาท';
 }
 
 // ============================================================
-// SETTINGS (localStorage only, sync)
+// SETTINGS
 // ============================================================
 function loadPaySettings() {
-  const s = _ls.getPaySettings();
-  if (s.bank) document.getElementById('pay-bank').value = s.bank;
-  if (s.num)  document.getElementById('pay-num').value  = s.num;
-  if (s.name) document.getElementById('pay-name').value = s.name;
-  // Lazy-load QR preview (avoid blocking init)
-  requestIdleCallback(() => {
-    qrBase64 = localStorage.getItem('pay_qr') || '';
-    if (qrBase64) showQrPrev(qrBase64);
-  }, { timeout: 1000 });
+  const s=_ls.getPaySettings();
+  if(s.bank) document.getElementById('pay-bank').value=s.bank;
+  if(s.num)  document.getElementById('pay-num').value =s.num;
+  if(s.name) document.getElementById('pay-name').value=s.name;
+  requestIdleCallback(()=>{
+    qrBase64=localStorage.getItem('pay_qr')||'';
+    if(qrBase64) showQrPrev(qrBase64);
+  },{timeout:800});
 }
 function savePaySettings() {
-  _ls.savePaySettings({
-    bank: document.getElementById('pay-bank').value.trim(),
-    num:  document.getElementById('pay-num').value.trim(),
-    name: document.getElementById('pay-name').value.trim()
-  });
+  _ls.savePaySettings({bank:document.getElementById('pay-bank').value.trim(),
+    num:document.getElementById('pay-num').value.trim(),name:document.getElementById('pay-name').value.trim()});
 }
 function loadDormSettings() {
-  const d = _ls.getDormSettings();
-  if (d.name)    document.getElementById('dorm-name').value    = d.name;
-  if (d.address) document.getElementById('dorm-address').value = d.address;
-  if (d.phone)   document.getElementById('dorm-phone').value   = d.phone;
-  if (d.owner)   document.getElementById('dorm-owner').value   = d.owner;
-  const s = document.getElementById('dorm-signer');
-  if (s && d.signer) s.value = d.signer;
+  const d=_ls.getDormSettings();
+  if(d.name)    document.getElementById('dorm-name').value   =d.name;
+  if(d.address) document.getElementById('dorm-address').value=d.address;
+  if(d.phone)   document.getElementById('dorm-phone').value  =d.phone;
+  if(d.owner)   document.getElementById('dorm-owner').value  =d.owner;
+  const s=document.getElementById('dorm-signer');
+  if(s&&d.signer) s.value=d.signer;
 }
-
-// Debounced save
 let _dormTimer;
 function saveDormSettings() {
   clearTimeout(_dormTimer);
-  _dormTimer = setTimeout(() => {
-    _ls.saveDormSettings({
-      name:    document.getElementById('dorm-name').value.trim(),
-      address: document.getElementById('dorm-address').value.trim(),
-      phone:   document.getElementById('dorm-phone').value.trim(),
-      owner:   document.getElementById('dorm-owner').value.trim(),
-      signer:  document.getElementById('dorm-signer').value.trim()
-    });
-  }, 400);
+  _dormTimer=setTimeout(()=>_ls.saveDormSettings({
+    name:   document.getElementById('dorm-name').value.trim(),
+    address:document.getElementById('dorm-address').value.trim(),
+    phone:  document.getElementById('dorm-phone').value.trim(),
+    owner:  document.getElementById('dorm-owner').value.trim(),
+    signer: document.getElementById('dorm-signer').value.trim()
+  }),400);
 }
-
 function handleQrUpload(e) {
-  const f = e.target.files[0]; if (!f) return;
-  if (f.size > 2 * 1024 * 1024) { showAlert('รูปใหญ่เกิน 2MB', 'warn'); return; }
-  const r = new FileReader();
-  r.onload = ev => { qrBase64 = ev.target.result; localStorage.setItem('pay_qr', qrBase64); showQrPrev(qrBase64); };
+  const f=e.target.files[0]; if(!f) return;
+  if(f.size>2*1024*1024){showAlert('รูปใหญ่เกิน 2MB','warn');return;}
+  const r=new FileReader();
+  r.onload=ev=>{qrBase64=ev.target.result;localStorage.setItem('pay_qr',qrBase64);showQrPrev(qrBase64);};
   r.readAsDataURL(f);
 }
 function showQrPrev(b) {
-  document.getElementById('qrPlaceholder').style.display = 'none';
-  const img = document.getElementById('qrPrev'); img.src = b; img.style.display = 'block';
-  document.getElementById('qrDelBtn').style.display = 'block';
-  document.getElementById('qrUploadZone').style.borderColor = 'rgba(52,211,153,.5)';
+  document.getElementById('qrPlaceholder').style.display='none';
+  const img=document.getElementById('qrPrev'); img.src=b; img.style.display='block';
+  document.getElementById('qrDelBtn').style.display='block';
+  document.getElementById('qrUploadZone').style.borderColor='rgba(52,211,153,.5)';
 }
 function delQr(e) {
-  e.stopPropagation(); qrBase64 = ''; localStorage.removeItem('pay_qr');
-  document.getElementById('qrPrev').style.display = 'none';
-  document.getElementById('qrDelBtn').style.display = 'none';
-  document.getElementById('qrPlaceholder').style.display = 'block';
-  document.getElementById('qrUploadZone').style.borderColor = '';
-  document.getElementById('qrFileIn').value = '';
+  e.stopPropagation(); qrBase64=''; localStorage.removeItem('pay_qr');
+  document.getElementById('qrPrev').style.display='none';
+  document.getElementById('qrDelBtn').style.display='none';
+  document.getElementById('qrPlaceholder').style.display='block';
+  document.getElementById('qrUploadZone').style.borderColor='';
+  document.getElementById('qrFileIn').value='';
 }
 
 // ============================================================
-// TENANTS
+// TENANTS — cached
 // ============================================================
-async function fetchTenants(force = false) {
-  if (!force) {
-    const cached = cache.get('tenants');
-    if (cached) return cached;
-  }
-  const { data } = await sb.from('tenants')
-    .select('id,name,room,phone,id_card,address,created_at')
-    .order('room');
-  cache.set('tenants', data || []);
-  return data || [];
+async function fetchTenants(force=false) {
+  if(!force){const c=cache.get('tenants');if(c) return c;}
+  const{data}=await sb.from('tenants').select('id,name,room,phone,id_card,address,created_at').order('room');
+  const rows=data||[];
+  cache.set('tenants',rows);
+  return rows;
 }
 
 async function loadTenantDropdown() {
-  const data = await fetchTenants();
-  const sel  = document.getElementById('cb-tenant');
-  const prev = sel.value;
-  sel.innerHTML = '<option value="">— เลือกผู้เช่า —</option>';
-  data.forEach(t => {
-    const o = new Option(`ห้อง ${t.room} — ${t.name}`, t.id);
-    o.dataset.json = JSON.stringify(t);
-    sel.appendChild(o);
+  const data=await fetchTenants();
+  const sel=document.getElementById('cb-tenant');
+  const prev=sel.value;
+  sel.innerHTML='<option value="">— เลือกผู้เช่า —</option>';
+  // Use DocumentFragment for batch DOM insert
+  const frag=document.createDocumentFragment();
+  data.forEach(t=>{
+    const o=new Option(`ห้อง ${t.room} — ${t.name}`,t.id);
+    o.dataset.json=JSON.stringify(t);
+    frag.appendChild(o);
   });
-  if (prev) sel.value = prev;
+  sel.appendChild(frag);
+  if(prev) sel.value=prev;
 }
 
 function onTenantSelect() {
-  const sel = document.getElementById('cb-tenant');
-  const opt = sel.options[sel.selectedIndex];
-  if (!opt?.dataset.json) return;
-  const t = JSON.parse(opt.dataset.json);
-  const rentMap = _ls.getRentMap();
-  if (rentMap[t.id]) { document.getElementById('cb-rent').value = rentMap[t.id]; updateGrand(); }
+  const sel=document.getElementById('cb-tenant');
+  const opt=sel.options[sel.selectedIndex];
+  if(!opt?.dataset.json) return;
+  const t=JSON.parse(opt.dataset.json);
+  const rm=_ls.getRentMap();
+  if(rm[t.id]){document.getElementById('cb-rent').value=rm[t.id];updateGrand();}
 }
 
 async function loadTenants() {
-  const data  = await fetchTenants();
-  const tbody = document.getElementById('tenantsTable');
-  if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">ยังไม่มีผู้เช่า</td></tr>';
-    return;
-  }
-  tbody.innerHTML = data.map(t => `
-    <tr>
-      <td><strong style="color:var(--water)">ห้อง ${esc(t.room)}</strong></td>
-      <td>${esc(t.name)}</td>
-      <td>${esc(t.phone)}</td>
-      <td style="color:var(--muted);font-size:12px">${esc(t.id_card)}</td>
-      <td style="display:flex;gap:6px">
-        <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openTenantDetail('${t.id}')">👁 ดู</button>
-        <button class="btn btn-danger" style="padding:5px 10px;font-size:11px" onclick="deleteTenant('${t.id}')">🗑 ลบ</button>
-      </td>
-    </tr>
-  `).join('');
+  const data=await fetchTenants();
+  const tbody=document.getElementById('tenantsTable');
+  if(!data.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">ยังไม่มีผู้เช่า</td></tr>';return;}
+  tbody.innerHTML=data.map(t=>`<tr>
+    <td><strong style="color:var(--water)">ห้อง ${esc(t.room)}</strong></td>
+    <td>${esc(t.name)}</td><td>${esc(t.phone)}</td>
+    <td style="color:var(--muted);font-size:12px">${esc(t.id_card)}</td>
+    <td style="display:flex;gap:6px">
+      <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openTenantDetail('${t.id}')">👁 ดู</button>
+      <button class="btn btn-danger" style="padding:5px 10px;font-size:11px" onclick="deleteTenant('${t.id}')">🗑 ลบ</button>
+    </td></tr>`).join('');
 }
 
-function openAddTenant() { openModal('addTenantOverlay'); }
+const openAddTenant=()=>openModal('addTenantOverlay');
 
 async function saveTenant() {
-  const name    = document.getElementById('nt-name').value.trim();
-  const room    = document.getElementById('nt-room').value.trim().toUpperCase();
-  const phone   = document.getElementById('nt-phone').value.trim();
-  const id_card = document.getElementById('nt-idcard').value.trim();
-  const address = document.getElementById('nt-address').value.trim();
-  if (!name || !room || !phone || !id_card) { showAlert('กรุณากรอกให้ครบ: ชื่อ / ห้อง / เบอร์ / เลขบัตร'); return; }
-  const { error } = await sb.from('tenants').insert({ name, room, phone, id_card, address });
-  if (error) { showAlert('เกิดข้อผิดพลาด: ' + error.message, 'danger'); return; }
-  cache.invalidate('tenants');
+  const name   =document.getElementById('nt-name').value.trim();
+  const room   =document.getElementById('nt-room').value.trim().toUpperCase();
+  const phone  =document.getElementById('nt-phone').value.trim();
+  const id_card=document.getElementById('nt-idcard').value.trim();
+  const address=document.getElementById('nt-address').value.trim();
+  if(!name||!room||!phone||!id_card){showAlert('กรุณากรอกให้ครบ: ชื่อ / ห้อง / เบอร์ / เลขบัตร');return;}
+  const{error}=await sb.from('tenants').insert({name,room,phone,id_card,address});
+  if(error){showAlert('เกิดข้อผิดพลาด: '+error.message,'danger');return;}
+  cache.del('tenants');
   closeModal('addTenantOverlay');
-  ['nt-name','nt-room','nt-phone','nt-idcard','nt-address'].forEach(id => document.getElementById(id).value = '');
+  ['nt-name','nt-room','nt-phone','nt-idcard','nt-address'].forEach(id=>document.getElementById(id).value='');
   loadTenants(); loadTenantDropdown();
 }
 
 async function deleteTenant(id) {
-  if (!confirm('ลบผู้เช่านี้? ข้อมูลบิลที่เกี่ยวข้องจะหายด้วย')) return;
-  await sb.from('tenants').delete().eq('id', id);
-  cache.invalidate('tenants');
-  loadTenants(); loadTenantDropdown();
+  if(!confirm('ลบผู้เช่านี้? ข้อมูลบิลที่เกี่ยวข้องจะหายด้วย')) return;
+  await sb.from('tenants').delete().eq('id',id);
+  cache.del('tenants'); loadTenants(); loadTenantDropdown();
 }
 
 async function openTenantDetail(tenantId) {
-  // Use cached tenants list first
-  const tenants = cache.get('tenants') || [];
-  const t = tenants.find(x => x.id === tenantId)
-         || (await sb.from('tenants').select('*').eq('id', tenantId).single()).data;
-  if (!t) return;
-
-  document.getElementById('td-title').textContent = t.name;
-  document.getElementById('td-sub').textContent   = 'ห้อง ' + t.room;
-  document.getElementById('td-body').innerHTML    = `
+  const tenants=cache.get('tenants')||[];
+  const t=tenants.find(x=>x.id===tenantId)
+       ||(await sb.from('tenants').select('*').eq('id',tenantId).single()).data;
+  if(!t) return;
+  document.getElementById('td-title').textContent=t.name;
+  document.getElementById('td-sub').textContent  ='ห้อง '+t.room;
+  document.getElementById('td-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">
       <div style="background:var(--surf2);border-radius:10px;padding:12px">
         <div style="font-size:11px;color:var(--muted);margin-bottom:3px">ห้อง</div>
@@ -887,40 +860,26 @@ async function openTenantDetail(tenantId) {
       <div style="font-size:11px;color:var(--muted);margin-bottom:3px">เลขบัตรประชาชน</div>
       <div style="font-weight:700;letter-spacing:.05em">${esc(t.id_card||'—')}</div>
     </div>
-    ${t.address ? `<div style="background:var(--surf2);border-radius:10px;padding:12px;margin-bottom:4px">
+    ${t.address?`<div style="background:var(--surf2);border-radius:10px;padding:12px;margin-bottom:4px">
       <div style="font-size:11px;color:var(--muted);margin-bottom:3px">ที่อยู่</div>
-      <div style="font-size:13px">${esc(t.address)}</div>
-    </div>` : ''}
+      <div style="font-size:13px">${esc(t.address)}</div></div>`:''}
     <div style="background:var(--surf2);border-radius:10px;padding:12px">
       <div style="font-size:11px;color:var(--muted);margin-bottom:3px">เพิ่มเมื่อ</div>
       <div style="font-size:13px">${new Date(t.created_at).toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}</div>
     </div>`;
-
-  // Load recent bills — select only needed columns, no payment_qr
-  const { data: bills } = await sb.from('bills')
-    .select('id,month_label,total,status,issued_at')
-    .eq('tenant_id', tenantId)
-    .order('issued_at', { ascending: false })
-    .limit(5);
-
-  const tdBills = document.getElementById('td-bills');
-  tdBills.innerHTML = !bills?.length
-    ? '<div style="color:var(--muted);font-size:13px;text-align:center;padding:14px">ยังไม่มีบิล</div>'
-    : bills.map(b => `
-      <div style="display:flex;justify-content:space-between;align-items:center;
+  const{data:bills}=await sb.from('bills').select('id,month_label,total,status,issued_at')
+    .eq('tenant_id',tenantId).order('issued_at',{ascending:false}).limit(5);
+  document.getElementById('td-bills').innerHTML=!bills?.length
+    ?'<div style="color:var(--muted);font-size:13px;text-align:center;padding:14px">ยังไม่มีบิล</div>'
+    :bills.map(b=>`<div style="display:flex;justify-content:space-between;align-items:center;
         padding:10px 12px;background:var(--surf2);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer"
         onclick="closeModal('tenantDetailOverlay');openBillDetail('${b.id}')">
-        <div>
-          <div style="font-size:13px;font-weight:600">${esc(b.month_label)}</div>
-          <div style="font-size:11px;color:var(--muted)">${new Date(b.issued_at).toLocaleDateString('th-TH')}</div>
-        </div>
+        <div><div style="font-size:13px;font-weight:600">${esc(b.month_label)}</div>
+        <div style="font-size:11px;color:var(--muted)">${new Date(b.issued_at).toLocaleDateString('th-TH')}</div></div>
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-family:'Prompt',sans-serif;font-weight:700">${fmt(b.total)} บาท</span>
-          ${statusPill(b.status)}
-        </div>
-      </div>`).join('');
-
-  document.getElementById('td-delete-btn').onclick = () => deleteTenant(tenantId);
+          ${statusPill(b.status)}</div></div>`).join('');
+  document.getElementById('td-delete-btn').onclick=()=>deleteTenant(tenantId);
   openModal('tenantDetailOverlay');
 }
 
@@ -928,106 +887,98 @@ async function openTenantDetail(tenantId) {
 // BILLS
 // ============================================================
 async function submitBill() {
-  const tenantId = document.getElementById('cb-tenant').value;
-  if (!tenantId) { showAlert('กรุณาเลือกผู้เช่า', 'warn'); return; }
-  const r = gv('cb-rent'), w = getWater(), e = getElec(), f = gv('cb-fine');
-  if (r <= 0 && w <= 0 && e <= 0) { showAlert('กรุณากรอกค่าห้อง หรือค่าน้ำ หรือค่าไฟอย่างน้อย 1 รายการ', 'warn'); return; }
+  const tenantId=document.getElementById('cb-tenant').value;
+  if(!tenantId){showAlert('กรุณาเลือกผู้เช่า','warn');return;}
+  const r=gv('cb-rent'),w=getWater(),e=getElec(),f=gv('cb-fine');
+  if(r<=0&&w<=0&&e<=0){showAlert('กรุณากรอกค่าห้อง หรือค่าน้ำ หรือค่าไฟอย่างน้อย 1 รายการ','warn');return;}
+  const sel=document.getElementById('cb-tenant');
+  const t  =JSON.parse(sel.options[sel.selectedIndex].dataset.json);
+  const pay=_ls.getPaySettings();
+  const monthLabel=getMonthLabel();
 
-  const sel = document.getElementById('cb-tenant');
-  const t   = JSON.parse(sel.options[sel.selectedIndex].dataset.json);
-  const pay = _ls.getPaySettings();
-  const wU  = Math.max(0, gv('cb-wcurr') - gv('cb-wprev'));
-  const eU  = Math.max(0, gv('cb-ecurr') - gv('cb-eprev'));
+  // Duplicate check (fast — only select id)
+  const{data:existing}=await sb.from('bills').select('id')
+    .eq('tenant_id',tenantId).eq('month_label',monthLabel).maybeSingle();
+  if(existing){showAlert(`⚠️ ห้อง ${t.room} มีบิลเดือน ${monthLabel} อยู่แล้ว`,'warn');return;}
 
-  if (r > 0) {
-    const rm = _ls.getRentMap();
-    rm[tenantId] = r;
-    _ls.saveRentMap(rm);
-  }
+  if(r>0){const rm=_ls.getRentMap();rm[tenantId]=r;_ls.saveRentMap(rm);}
 
-  const bill = {
-    tenant_id: tenantId, room: t.room, tenant_name: t.name,
-    month_label: getMonthLabel(),
-    rent: r, water: w, elec: e, fine: f || 0,
-    fine_reason: document.getElementById('cb-fine-reason').value.trim(),
-    total: r + w + e + f, water_units: wU, elec_units: eU,
-    status: 'pending',
-    payment_qr: qrBase64,
-    bank_name: pay.bank || '', bank_number: pay.num || '', bank_account_name: pay.name || ''
+  const bill={
+    tenant_id:tenantId,room:t.room,tenant_name:t.name,month_label:monthLabel,
+    rent:r,water:w,elec:e,fine:f||0,
+    fine_reason:document.getElementById('cb-fine-reason').value.trim(),
+    total:r+w+e+f,
+    water_units:Math.max(0,gv('cb-wcurr')-gv('cb-wprev')),
+    elec_units :Math.max(0,gv('cb-ecurr')-gv('cb-eprev')),
+    status:'pending',payment_qr:qrBase64,
+    bank_name:pay.bank||'',bank_number:pay.num||'',bank_account_name:pay.name||''
   };
-
-  const { error } = await sb.from('bills').insert(bill);
-  if (error) { showAlert('เกิดข้อผิดพลาด: ' + error.message, 'danger'); return; }
-
-  cache.invalidate('bills', 'payments');
-  showAlert(`✅ สร้างบิลสำเร็จ! ห้อง ${t.room} — ${t.name} ยอด ${fmt(r+w+e+f)} บาท`, 'ok');
+  const{error}=await sb.from('bills').insert(bill);
+  if(error){showAlert('เกิดข้อผิดพลาด: '+error.message,'danger');return;}
+  cache.del('bills'); cache.monthLabels=null;
+  showAlert(`✅ สร้างบิลสำเร็จ! ห้อง ${t.room} — ${t.name} ยอด ${fmt(r+w+e+f)} บาท`,'ok');
   showPage('bills');
 }
 
+// Shared month-labels → populate any <select> without extra query
+async function populateMonthSelect(sel, currentVal) {
+  if(!sel||sel.options.length>1) return;
+  const labels=await getMonthLabels();
+  const frag=document.createDocumentFragment();
+  labels.forEach(l=>{const o=new Option(l,l);frag.appendChild(o);});
+  sel.appendChild(frag);
+  if(currentVal) sel.value=currentVal;
+}
+
 async function loadBills() {
-  const status   = document.getElementById('filterStatus')?.value || '';
-  const cacheKey = 'bills_' + status;
-  const cached   = cache.get('bills', cacheKey);
+  const status=document.getElementById('filterStatus')?.value||'';
+  const month =document.getElementById('filterMonth')?.value ||'';
+  const key   ='bills_'+status+'_'+month;
 
-  if (cached) {
-    renderBillsTable(cached);
-    return;
-  }
+  // Populate month dropdown (shared cache, no extra query)
+  await populateMonthSelect(document.getElementById('filterMonth'), month);
 
-  // Show skeleton
-  const tbody = document.getElementById('billsTable');
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">กำลังโหลด...</td></tr>';
+  const cached=cache.get(key);
+  if(cached){renderBillsTable(cached);return;}
 
-  // Only select columns needed for table — skip payment_qr (huge base64)
-  let q = sb.from('bills')
-    .select('id,room,tenant_name,month_label,total,status')
-    .order('issued_at', { ascending: false });
-  if (status) q = q.eq('status', status);
+  document.getElementById('billsTable').innerHTML=
+    '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">กำลังโหลด...</td></tr>';
 
-  const { data } = await q;
-  // Sort by room name (ASCII order)
-  const rows = (data || []).sort((a, b) => a.room.localeCompare(b.room, undefined, { numeric: true, sensitivity: 'base' }));
-  cache.set('bills', rows, cacheKey);
+  let q=sb.from('bills').select('id,room,tenant_name,month_label,total,status')
+    .order('issued_at',{ascending:false});
+  if(status) q=q.eq('status',status);
+  if(month)  q=q.eq('month_label',month);
+
+  const{data}=await q;
+  const rows=(data||[]).sort((a,b)=>a.room.localeCompare(b.room,undefined,{numeric:true,sensitivity:'base'}));
+  cache.set(key,rows);
   renderBillsTable(rows);
 }
 
 function renderBillsTable(data) {
-  const tbody = document.getElementById('billsTable');
-  if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">ไม่พบบิล</td></tr>';
-    return;
-  }
-  // Build HTML string in one pass
-  const parts = [];
-  for (const b of data) {
-    parts.push(`<tr>
-      <td><strong style="color:var(--water)">ห้อง ${esc(b.room)}</strong></td>
-      <td>${esc(b.tenant_name)}</td>
-      <td>${esc(b.month_label)}</td>
-      <td style="font-family:'Prompt',sans-serif;font-weight:700">${fmt(b.total)} บาท</td>
-      <td>${statusPill(b.status)}</td>
-      <td><button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openBillDetail('${b.id}')">🔍 ดู</button></td>
-    </tr>`);
-  }
-  tbody.innerHTML = parts.join('');
+  const tbody=document.getElementById('billsTable');
+  if(!data.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">ไม่พบบิล</td></tr>';return;}
+  // Single string concat — fastest DOM update
+  tbody.innerHTML=data.map(b=>`<tr>
+    <td><strong style="color:var(--water)">ห้อง ${esc(b.room)}</strong></td>
+    <td>${esc(b.tenant_name)}</td><td>${esc(b.month_label)}</td>
+    <td style="font-family:'Prompt',sans-serif;font-weight:700">${fmt(b.total)} บาท</td>
+    <td>${statusPill(b.status)}</td>
+    <td><button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openBillDetail('${b.id}')">🔍 ดู</button></td>
+  </tr>`).join('');
 }
 
 async function openBillDetail(billId) {
-  activeBillId = billId;
-
-  // Fetch bill & payments in parallel — bill excludes payment_qr in list view but need it here
-  const [{ data: b }, { data: pays }] = await Promise.all([
-    sb.from('bills').select('*').eq('id', billId).single(),
-    sb.from('payments').select('*').eq('bill_id', billId).order('paid_at')
+  activeBillId=billId;
+  const[{data:b},{data:pays}]=await Promise.all([
+    sb.from('bills').select('*').eq('id',billId).single(),
+    sb.from('payments').select('*').eq('bill_id',billId).order('paid_at')
   ]);
-
-  const paidTotal = (pays||[]).filter(p => p.status === 'verified').reduce((s, p) => s + (p.amount||0), 0);
-  const remaining = (b.total||0) - paidTotal;
-
-  document.getElementById('bd-title').textContent = `ห้อง ${b.room} — ${b.tenant_name}`;
-  document.getElementById('bd-sub').textContent   = `เดือน ${b.month_label}`;
-
-  const parts = [`
+  const paidTotal=(pays||[]).filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
+  const remaining=(b.total||0)-paidTotal;
+  document.getElementById('bd-title').textContent=`ห้อง ${b.room} — ${b.tenant_name}`;
+  document.getElementById('bd-sub').textContent  =`เดือน ${b.month_label}`;
+  const parts=[`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
       <div style="background:var(--surf2);border-radius:10px;padding:12px">
         <div style="font-size:11px;color:var(--muted)">ยอดรวม</div>
@@ -1039,387 +990,270 @@ async function openBillDetail(billId) {
       </div>
     </div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:700">รายการ</div>
-    ${b.rent>0  ? `<div class="sum-row"><span style="color:var(--muted)">🏠 ค่าห้อง</span><span style="color:var(--rent);font-weight:700">${fmt(b.rent)} บาท</span></div>` : ''}
-    ${(b.water>0||b.water_units>0) ? `<div class="sum-row"><span style="color:var(--muted)">💧 ค่าน้ำ (${b.water_units} หน่วย)</span><span style="color:var(--water);font-weight:700">${fmt(b.water)} บาท</span></div>` : ''}
-    ${(b.elec>0||b.elec_units>0)  ? `<div class="sum-row"><span style="color:var(--muted)">⚡ ค่าไฟ (${b.elec_units} หน่วย)</span><span style="color:var(--elec);font-weight:700">${fmt(b.elec)} บาท</span></div>` : ''}
-    ${b.fine>0  ? `<div class="sum-row"><span style="color:var(--muted)">⚠️ ค่าปรับ${b.fine_reason?' ('+esc(b.fine_reason)+')':''}</span><span style="color:var(--danger);font-weight:700">${fmt(b.fine)} บาท</span></div>` : ''}
-  `];
-
-  if (pays?.length) {
+    ${b.rent>0?`<div class="sum-row"><span style="color:var(--muted)">🏠 ค่าห้อง</span><span style="color:var(--rent);font-weight:700">${fmt(b.rent)} บาท</span></div>`:''}
+    ${(b.water>0||b.water_units>0)?`<div class="sum-row"><span style="color:var(--muted)">💧 ค่าน้ำ (${b.water_units} หน่วย)</span><span style="color:var(--water);font-weight:700">${fmt(b.water)} บาท</span></div>`:''}
+    ${(b.elec>0||b.elec_units>0)?`<div class="sum-row"><span style="color:var(--muted)">⚡ ค่าไฟ (${b.elec_units} หน่วย)</span><span style="color:var(--elec);font-weight:700">${fmt(b.elec)} บาท</span></div>`:''}
+    ${b.fine>0?`<div class="sum-row"><span style="color:var(--muted)">⚠️ ค่าปรับ${b.fine_reason?' ('+esc(b.fine_reason)+')':''}</span><span style="color:var(--danger);font-weight:700">${fmt(b.fine)} บาท</span></div>`:''}`];
+  if(pays?.length) {
     parts.push(`<div style="font-size:12px;color:var(--muted);margin:14px 0 8px;font-weight:700">หลักฐานการชำระ (${pays.length} รายการ)</div>`);
-    for (const p of pays) {
-      parts.push(`<div class="pay-item">
-        <div class="pay-header">
-          <div>
-            <div style="font-weight:700">${fmt(p.amount)} บาท</div>
-            <div style="font-size:11px;color:var(--muted)">${new Date(p.paid_at).toLocaleString('th-TH')}</div>
-            ${p.note ? `<div style="font-size:12px;color:var(--muted)">${esc(p.note)}</div>` : ''}
-          </div>
-          <div style="display:flex;gap:6px;align-items:center">
-            <span class="pill ${p.status==='verified'?'pill-confirmed':p.status==='rejected'?'pill-rejected':'pill-verify'}">${p.status==='verified'?'✅ ยืนยันแล้ว':p.status==='rejected'?'❌ ปฏิเสธ':'🔍 รอตรวจ'}</span>
-            ${p.status==='pending_verify' ? `<button class="btn btn-primary" style="padding:4px 10px;font-size:11px" onclick="openVerifyModal('${p.id}','${billId}',${p.amount})">🔍 ตรวจสอบ</button>` : ''}
-            ${p.status==='verified'       ? `<button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="verifyPayment('${p.id}','${billId}',false,0)">ยกเลิก</button>` : ''}
-          </div>
-        </div>
-        ${p.slip_url ? `<img src="${p.slip_url}" class="slip-img" style="max-height:200px;object-fit:contain" loading="lazy">` : ''}
-      </div>`);
-    }
+    pays.forEach(p=>parts.push(`<div class="pay-item"><div class="pay-header"><div>
+      <div style="font-weight:700">${fmt(p.amount)} บาท</div>
+      <div style="font-size:11px;color:var(--muted)">${new Date(p.paid_at).toLocaleString('th-TH')}</div>
+      ${p.note?`<div style="font-size:12px;color:var(--muted)">${esc(p.note)}</div>`:''}
+    </div><div style="display:flex;gap:6px;align-items:center">
+      <span class="pill ${p.status==='verified'?'pill-confirmed':p.status==='rejected'?'pill-rejected':'pill-verify'}">${p.status==='verified'?'✅ ยืนยันแล้ว':p.status==='rejected'?'❌ ปฏิเสธ':'🔍 รอตรวจ'}</span>
+      ${p.status==='pending_verify'?`<button class="btn btn-primary" style="padding:4px 10px;font-size:11px" onclick="openVerifyModal('${p.id}','${billId}',${p.amount})">🔍 ตรวจสอบ</button>`:''}
+      ${p.status==='verified'?`<button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="verifyPayment('${p.id}','${billId}',false)">ยกเลิก</button>`:''}
+    </div></div>
+    ${p.slip_url?`<img src="${p.slip_url}" class="slip-img" style="max-height:200px;object-fit:contain" loading="lazy">`:''}
+    </div>`));
   }
-
-  document.getElementById('bd-body').innerHTML = parts.join('');
+  document.getElementById('bd-body').innerHTML=parts.join('');
   openModal('billDetailOverlay');
 }
 
-let activeVerifyPayId = null, activeVerifyBillId = null, activeVerifyClaimedAmt = 0;
-
-function openVerifyModal(payId, billId, claimedAmt) {
-  activeVerifyPayId = payId; activeVerifyBillId = billId; activeVerifyClaimedAmt = claimedAmt;
-  document.getElementById('vr-claimed').textContent = fmt(claimedAmt);
-  document.getElementById('vr-amount').value = claimedAmt;
+let activeVerifyPayId=null,activeVerifyBillId=null,activeVerifyClaimedAmt=0;
+function openVerifyModal(payId,billId,claimedAmt) {
+  activeVerifyPayId=payId;activeVerifyBillId=billId;activeVerifyClaimedAmt=claimedAmt;
+  document.getElementById('vr-claimed').textContent=fmt(claimedAmt);
+  document.getElementById('vr-amount').value=claimedAmt;
   openModal('verifyOverlay');
 }
-function setVerifyFull()    { document.getElementById('vr-amount').value = activeVerifyClaimedAmt; }
-function setVerifyPartial() { document.getElementById('vr-amount').value = ''; document.getElementById('vr-amount').focus(); }
+const setVerifyFull=()=>{document.getElementById('vr-amount').value=activeVerifyClaimedAmt;};
+const setVerifyPartial=()=>{document.getElementById('vr-amount').value='';document.getElementById('vr-amount').focus();};
 
 async function doVerify(approve) {
-  if (!approve) {
-    await sb.from('payments').update({ status: 'rejected', verified_at: new Date().toISOString() }).eq('id', activeVerifyPayId);
+  if(!approve) {
+    await sb.from('payments').update({status:'rejected',verified_at:new Date().toISOString()}).eq('id',activeVerifyPayId);
   } else {
-    const confirmedAmt = parseFloat(document.getElementById('vr-amount').value);
-    if (!confirmedAmt || confirmedAmt <= 0) { showAlert('กรุณากรอกจำนวนเงิน', 'warn'); return; }
-    await sb.from('payments').update({ status: 'verified', amount: confirmedAmt, verified_at: new Date().toISOString() }).eq('id', activeVerifyPayId);
+    const amt=parseFloat(document.getElementById('vr-amount').value);
+    if(!amt||amt<=0){showAlert('กรุณากรอกจำนวนเงิน','warn');return;}
+    await sb.from('payments').update({status:'verified',amount:amt,verified_at:new Date().toISOString()}).eq('id',activeVerifyPayId);
   }
   await recalcBillStatus(activeVerifyBillId);
-  cache.invalidate('bills', 'payments');
+  cache.del('bills','payments');
   closeModal('verifyOverlay');
-  // Refresh dashboard in background so room card updates colour immediately
-  loadDashboard();
+  await loadDashboard();      // await → ensures grid colour updates before modal closes
   openBillDetail(activeVerifyBillId);
   loadPayments();
 }
 
-async function verifyPayment(payId, billId, approve) {
-  await sb.from('payments').update({ status: approve ? 'verified' : 'rejected', verified_at: new Date().toISOString() }).eq('id', payId);
+async function verifyPayment(payId,billId,approve) {
+  await sb.from('payments').update({status:approve?'verified':'rejected',verified_at:new Date().toISOString()}).eq('id',payId);
   await recalcBillStatus(billId);
-  cache.invalidate('bills', 'payments');
+  cache.del('bills','payments');
   loadDashboard();
   openBillDetail(billId);
 }
 
-// Shared helper — avoids duplicated query logic
+// Recalc: confirmed when fully paid & no pending slips
 async function recalcBillStatus(billId) {
-  const [{ data: pays }, { data: bill }] = await Promise.all([
-    sb.from('payments').select('status,amount').eq('bill_id', billId),
-    sb.from('bills').select('total').eq('id', billId).single()
+  const[{data:pays},{data:bill}]=await Promise.all([
+    sb.from('payments').select('status,amount').eq('bill_id',billId),
+    sb.from('bills').select('total').eq('id',billId).single()
   ]);
-  const paidTotal  = (pays||[]).filter(p => p.status === 'verified').reduce((s, p) => s + (p.amount||0), 0);
-  const hasPending = (pays||[]).some(p => p.status === 'pending_verify');
-  let newStatus = 'pending';
-  if (hasPending)              newStatus = 'paid';
-  else if (paidTotal >= bill.total) newStatus = 'paid';
-  else if (paidTotal > 0)      newStatus = 'partial';
-  await sb.from('bills').update({ status: newStatus }).eq('id', billId);
+  const paid   =(pays||[]).filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
+  const pending=(pays||[]).some(p=>p.status==='pending_verify');
+  let st='pending';
+  if(pending)        st='paid';        // still has unverified slips
+  else if(paid>=bill.total) st='confirmed';  // fully paid → GREEN ✅
+  else if(paid>0)    st='partial';
+  const upd={status:st};
+  if(st==='confirmed') upd.confirmed_at=new Date().toISOString();
+  await sb.from('bills').update(upd).eq('id',billId);
 }
 
 // ============================================================
 // PAYMENTS LIST
 // ============================================================
 async function loadPayments() {
-  const cached = cache.get('payments');
-  if (cached) { renderPayments(cached); return; }
-
-  const { data } = await sb.from('payments')
+  const cached=cache.get('payments');
+  if(cached){renderPayments(cached);return;}
+  const{data}=await sb.from('payments')
     .select('id,bill_id,amount,status,paid_at,note,slip_url,bills(room,tenant_name,month_label)')
-    .order('paid_at', { ascending: false });
-
-  const rows = data || [];
-  cache.set('payments', rows);
+    .order('paid_at',{ascending:false});
+  const rows=data||[];
+  cache.set('payments',rows);
   renderPayments(rows);
 }
-
 function renderPayments(data) {
-  const el      = document.getElementById('paymentsList');
-  const pending = data.filter(p => p.status === 'pending_verify');
-  const badge   = document.getElementById('payBadge');
-  badge.textContent  = pending.length;
-  badge.style.display = pending.length ? 'inline' : 'none';
-
-  if (!data.length) {
-    el.innerHTML = '<div class="empty"><div class="eico">💸</div><p>ยังไม่มีการชำระเงิน</p></div>';
-    return;
-  }
-
-  const parts = [];
-  for (const p of data) {
-    parts.push(`<div class="pay-item">
-      <div class="pay-header">
-        <div>
-          <div style="font-weight:700;font-size:15px">${fmt(p.amount)} บาท</div>
-          <div style="font-size:12px;color:var(--water)">ห้อง ${esc(p.bills?.room)} — ${esc(p.bills?.tenant_name)} | ${esc(p.bills?.month_label)}</div>
-          <div style="font-size:11px;color:var(--muted)">${new Date(p.paid_at).toLocaleString('th-TH')}</div>
-          ${p.note ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">${esc(p.note)}</div>` : ''}
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-direction:column">
-          <span class="pill ${p.status==='verified'?'pill-confirmed':p.status==='rejected'?'pill-rejected':'pill-verify'}">${p.status==='verified'?'✅ ยืนยัน':p.status==='rejected'?'❌ ปฏิเสธ':'🔍 รอตรวจ'}</span>
-          ${p.status==='pending_verify' ? `<button class="btn btn-primary" style="padding:5px 12px;font-size:12px" onclick="openVerifyModal('${p.id}','${p.bill_id}',${p.amount})">🔍 ตรวจสอบ</button>` : ''}
-        </div>
-      </div>
-      ${p.slip_url ? `<img src="${p.slip_url}" class="slip-img" style="max-height:220px;object-fit:contain" loading="lazy" onclick="window.open('${p.slip_url}','_blank')">` : ''}
-    </div>`);
-  }
-  el.innerHTML = parts.join('');
+  const el=document.getElementById('paymentsList');
+  const pending=data.filter(p=>p.status==='pending_verify');
+  const badge=document.getElementById('payBadge');
+  badge.textContent=pending.length;badge.style.display=pending.length?'inline':'none';
+  if(!data.length){el.innerHTML='<div class="empty"><div class="eico">💸</div><p>ยังไม่มีการชำระเงิน</p></div>';return;}
+  el.innerHTML=data.map(p=>`<div class="pay-item"><div class="pay-header"><div>
+    <div style="font-weight:700;font-size:15px">${fmt(p.amount)} บาท</div>
+    <div style="font-size:12px;color:var(--water)">ห้อง ${esc(p.bills?.room)} — ${esc(p.bills?.tenant_name)} | ${esc(p.bills?.month_label)}</div>
+    <div style="font-size:11px;color:var(--muted)">${new Date(p.paid_at).toLocaleString('th-TH')}</div>
+    ${p.note?`<div style="font-size:12px;color:var(--muted);margin-top:3px">${esc(p.note)}</div>`:''}
+  </div><div style="display:flex;gap:6px;align-items:center;flex-direction:column">
+    <span class="pill ${p.status==='verified'?'pill-confirmed':p.status==='rejected'?'pill-rejected':'pill-verify'}">${p.status==='verified'?'✅ ยืนยัน':p.status==='rejected'?'❌ ปฏิเสธ':'🔍 รอตรวจ'}</span>
+    ${p.status==='pending_verify'?`<button class="btn btn-primary" style="padding:5px 12px;font-size:12px" onclick="openVerifyModal('${p.id}','${p.bill_id}',${p.amount})">🔍 ตรวจสอบ</button>`:''}
+  </div></div>
+  ${p.slip_url?`<img src="${p.slip_url}" class="slip-img" style="max-height:220px;object-fit:contain" loading="lazy" onclick="window.open('${p.slip_url}','_blank')">`:''}
+  </div>`).join('');
 }
 
 // ============================================================
-// DASHBOARD
+// DASHBOARD — optimized: 1 round-trip for bills when no filter
 // ============================================================
 async function loadDashboard() {
-  if (!sb) return;
+  const mf=document.getElementById('dash-month-filter');
+  const selectedMonth=mf?.value||'';
 
-  // Populate month filter (once)
-  const mf = document.getElementById('dash-month-filter');
-  if (mf && mf.options.length <= 1) {
-    const { data: labelRows } = await sb.from('bills')
-      .select('month_label')
-      .order('issued_at', { ascending: false });
-    const labels = [...new Set((labelRows||[]).map(b => b.month_label).filter(Boolean))];
-    labels.forEach(l => {
-      if (!mf.querySelector(`option[value="${l}"]`)) mf.appendChild(new Option(l, l));
-    });
-  }
+  // Populate month dropdown via shared cache (zero extra query after first load)
+  await populateMonthSelect(mf, selectedMonth);
 
-  const selectedMonth = mf?.value || '';
-
-  // Parallel: tenants + bills (no payment_qr)
-  const [tenants, billsRes] = await Promise.all([
+  // Parallel: tenants (cached) + bills filtered
+  const[tenants,billsRes]=await Promise.all([
     fetchTenants(),
-    (() => {
-      let q = sb.from('bills')
-        .select('id,tenant_id,room,tenant_name,month_label,total,status,issued_at')
-        .order('issued_at', { ascending: false });
-      if (selectedMonth) q = q.eq('month_label', selectedMonth);
-      return q;
-    })()
+    sb.from('bills')
+      .select('id,tenant_id,room,tenant_name,month_label,total,status,issued_at')
+      .order('issued_at',{ascending:false})
+      .then(r=>selectedMonth?({data:(r.data||[]).filter(b=>b.month_label===selectedMonth)}):r)
   ]);
 
-  const allBillsData = billsRes.data || [];
+  const allBills=billsRes.data||[];
 
-  // Map: tenantId → latest bill
-  const tenantBillMap = {};
-  for (const b of allBillsData) {
-    if (!tenantBillMap[b.tenant_id]) tenantBillMap[b.tenant_id] = b;
-  }
+  // tenantId → latest bill
+  const billMap={};
+  for(const b of allBills) if(!billMap[b.tenant_id]) billMap[b.tenant_id]=b;
 
-  // Fetch payments only for partial bills (optimized: only what's needed)
-  const partialBillIds = Object.values(tenantBillMap).filter(b => b.status === 'partial').map(b => b.id);
-  const paymentMap = {};
-  if (partialBillIds.length) {
-    const { data: pays } = await sb.from('payments')
-      .select('bill_id,status,amount')
-      .in('bill_id', partialBillIds)
-      .eq('status', 'verified');
-    (pays||[]).forEach(p => {
-      paymentMap[p.bill_id] = (paymentMap[p.bill_id] || 0) + (p.amount || 0);
-    });
+  // Fetch verified payment totals for partial bills only
+  const partialIds=Object.values(billMap).filter(b=>b.status==='partial').map(b=>b.id);
+  const payMap={};
+  if(partialIds.length) {
+    const{data:pays}=await sb.from('payments').select('bill_id,amount')
+      .in('bill_id',partialIds).eq('status','verified');
+    (pays||[]).forEach(p=>{payMap[p.bill_id]=(payMap[p.bill_id]||0)+(p.amount||0);});
   }
 
   // Stats
-  const bills = Object.values(tenantBillMap);
-  document.getElementById('st-rooms').textContent   = tenants.length;
-  document.getElementById('st-pending').textContent = bills.filter(b => b.status === 'pending' || b.status === 'partial').length;
-  document.getElementById('st-partial').textContent = bills.filter(b => b.status === 'paid').length;
-  document.getElementById('st-confirm').textContent = bills.filter(b => b.status === 'confirmed').length;
+  const bills=Object.values(billMap);
+  document.getElementById('st-rooms').textContent  =tenants.length;
+  document.getElementById('st-pending').textContent=bills.filter(b=>b.status==='pending'||b.status==='partial').length;
+  document.getElementById('st-partial').textContent=bills.filter(b=>b.status==='paid').length;
+  document.getElementById('st-confirm').textContent=bills.filter(b=>b.status==='confirmed').length;
 
-  // Render room grid
-  const grid = document.getElementById('roomGrid');
-  if (!tenants.length) {
-    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="eico">👥</div><p>ยังไม่มีผู้เช่า</p></div>';
-    return;
-  }
+  const grid=document.getElementById('roomGrid');
+  if(!tenants.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="eico">👥</div><p>ยังไม่มีผู้เช่า</p></div>';return;}
 
-  const parts = [];
-  for (const t of tenants) {
-    const bill = tenantBillMap[t.id];
-    if (!bill) {
-      parts.push(`<div class="room-card status-empty" onclick="showPage('tenants')">
-        <div><div class="room-num" style="color:#94a3b8">${esc(t.room)}</div><div class="room-name">${esc(t.name)}</div></div>
-        <div class="room-amt" style="color:#94a3b8;font-size:12px">ไม่มีบิล</div>
-        <div class="room-status-dot" style="background:#cbd5e1"></div>
-      </div>`);
-      continue;
-    }
+  // Config map — avoid branch per card
+  const STATUS_CFG={
+    pending:  {color:'#dc2626',cls:'status-pending', dot:'#f87171',lbl:'รอชำระ'},
+    partial:  {color:'#dc2626',cls:'status-partial', dot:'#f87171',lbl:'ค้างชำระ'},
+    paid:     {color:'#92400e',cls:'status-paid',    dot:'#fbbf24',lbl:'รอยืนยันสลิป'},
+    confirmed:{color:'#166534',cls:'status-confirmed',dot:'#34d399',lbl:'ยืนยันแล้ว'},
+  };
 
-    let displayAmt = bill.total, amtColor = '#dc2626', cardClass = 'status-pending',
-        dotColor = '#f87171', amtLabel = 'รอชำระ';
-
-    if (bill.status === 'partial') {
-      const paid = paymentMap[bill.id] || 0;
-      displayAmt = Math.max(0, bill.total - paid);
-      amtColor = '#dc2626'; cardClass = 'status-partial'; dotColor = '#f87171'; amtLabel = 'ค้างชำระ';
-    } else if (bill.status === 'paid') {
-      amtColor = '#92400e'; cardClass = 'status-paid'; dotColor = '#fbbf24'; amtLabel = 'รอยืนยันสลิป';
-    } else if (bill.status === 'confirmed') {
-      amtColor = '#166534'; cardClass = 'status-confirmed'; dotColor = '#34d399'; amtLabel = 'ยืนยันแล้ว';
-    }
-
-    parts.push(`<div class="room-card ${cardClass}" onclick="openBillDetail('${bill.id}')">
-      <div>
-        <div class="room-num" style="color:${amtColor}">${esc(t.room)}</div>
-        <div class="room-name">${esc(t.name)}</div>
-        <div style="font-size:10px;color:#94a3b8;margin-top:2px">${esc(bill.month_label)}</div>
-      </div>
-      <div>
-        <div class="room-amt" style="color:${amtColor}">${fmt(displayAmt)}</div>
-        <div style="font-size:10px;font-weight:700;color:${amtColor};margin-top:1px">${amtLabel}</div>
-      </div>
-      <div class="room-status-dot" style="background:${dotColor}"></div>
-    </div>`);
-  }
-  grid.innerHTML = parts.join('');
+  grid.innerHTML=tenants.map(t=>{
+    const bill=billMap[t.id];
+    if(!bill) return `<div class="room-card status-empty" onclick="showPage('tenants')">
+      <div><div class="room-num" style="color:#94a3b8">${esc(t.room)}</div><div class="room-name">${esc(t.name)}</div></div>
+      <div class="room-amt" style="color:#94a3b8;font-size:12px">ไม่มีบิล</div>
+      <div class="room-status-dot" style="background:#cbd5e1"></div></div>`;
+    const cfg=STATUS_CFG[bill.status]||STATUS_CFG.pending;
+    const amt=bill.status==='partial'?Math.max(0,bill.total-(payMap[bill.id]||0)):bill.total;
+    return `<div class="room-card ${cfg.cls}" onclick="openBillDetail('${bill.id}')">
+      <div><div class="room-num" style="color:${cfg.color}">${esc(t.room)}</div>
+      <div class="room-name">${esc(t.name)}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:2px">${esc(bill.month_label)}</div></div>
+      <div><div class="room-amt" style="color:${cfg.color}">${fmt(amt)}</div>
+      <div style="font-size:10px;font-weight:700;color:${cfg.color};margin-top:1px">${cfg.lbl}</div></div>
+      <div class="room-status-dot" style="background:${cfg.dot}"></div></div>`;
+  }).join('');
 }
 
 // ============================================================
 // SUMMARY
 // ============================================================
 function initSummary() {
-  const sel = document.getElementById('sum-year');
-  if (!sel || sel.options.length > 0) { loadSummary(); return; }
-  const curY = new Date().getFullYear() + 543;
-  for (let y = curY; y >= curY - 4; y--) {
-    const o = new Option('พ.ศ. ' + y, y);
-    if (y === curY) o.selected = true;
-    sel.appendChild(o);
-  }
+  const sel=document.getElementById('sum-year');
+  if(!sel||sel.options.length>0){loadSummary();return;}
+  const curY=new Date().getFullYear()+543;
+  for(let y=curY;y>=curY-4;y--){const o=new Option('พ.ศ. '+y,y);if(y===curY)o.selected=true;sel.appendChild(o);}
   loadSummary();
 }
-
 async function loadSummary() {
-  const yearBE  = parseInt(document.getElementById('sum-year').value);
-  const { data: bills } = await sb.from('bills')
+  const yearBE=parseInt(document.getElementById('sum-year').value);
+  const{data:bills}=await sb.from('bills')
     .select('room,tenant_name,month_label,rent,water,elec,fine,total')
-    .eq('status', 'confirmed');
-
-  const yearBills = (bills||[]).filter(b => b.month_label?.includes(String(yearBE)));
-
-  // Monthly
-  const monthMap = {};
-  MSHORT.forEach(m => { monthMap[m] = { label: m, rent:0, water:0, elec:0, fine:0, total:0, rooms: new Set() }; });
-  for (const b of yearBills) {
-    const mKey = MSHORT.find(m => b.month_label.startsWith(m));
-    if (!mKey) continue;
-    monthMap[mKey].rent  += b.rent  || 0;
-    monthMap[mKey].water += b.water || 0;
-    monthMap[mKey].elec  += b.elec  || 0;
-    monthMap[mKey].fine  += b.fine  || 0;
-    monthMap[mKey].total += b.total || 0;
-    monthMap[mKey].rooms.add(b.room);
+    .eq('status','confirmed');
+  const yb=(bills||[]).filter(b=>b.month_label?.includes(String(yearBE)));
+  // Monthly aggregation
+  const mm={};
+  MSHORT.forEach(m=>{mm[m]={rent:0,water:0,elec:0,fine:0,total:0,rooms:new Set()};});
+  for(const b of yb){
+    const k=MSHORT.find(m=>b.month_label.startsWith(m));if(!k)continue;
+    mm[k].rent+=b.rent||0;mm[k].water+=b.water||0;mm[k].elec+=b.elec||0;
+    mm[k].fine+=b.fine||0;mm[k].total+=b.total||0;mm[k].rooms.add(b.room);
   }
-
-  let grandTotal = 0;
-  const monthRows = MSHORT.map(m => {
-    const d = monthMap[m];
-    if (d.total === 0) return '';
-    grandTotal += d.total;
-    return `<tr>
-      <td style="font-weight:600">${m} ${yearBE}</td>
-      <td style="text-align:right;color:var(--rent)">${fmt(d.rent)}</td>
-      <td style="text-align:right;color:var(--water)">${fmt(d.water)}</td>
-      <td style="text-align:right;color:var(--elec)">${fmt(d.elec)}</td>
-      <td style="text-align:right;color:var(--danger)">${d.fine > 0 ? fmt(d.fine) : '—'}</td>
-      <td style="text-align:right;font-family:'Prompt',sans-serif;font-weight:700;color:var(--ok)">${fmt(d.total)}</td>
-      <td style="text-align:center;color:var(--muted)">${d.rooms.size} ห้อง</td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('sumMonthTable').innerHTML = monthRows ||
-    '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">ไม่มีข้อมูลในปีนี้</td></tr>';
-  document.getElementById('sum-total-year').textContent = fmt(grandTotal) + ' บาท';
-
-  // Room summary
-  const roomMap = {};
-  for (const b of yearBills) {
-    if (!roomMap[b.room]) roomMap[b.room] = { room: b.room, name: b.tenant_name, rent:0, water:0, elec:0, total:0, count:0 };
-    roomMap[b.room].rent  += b.rent  || 0;
-    roomMap[b.room].water += b.water || 0;
-    roomMap[b.room].elec  += b.elec  || 0;
-    roomMap[b.room].total += b.total || 0;
-    roomMap[b.room].count++;
-  }
-  const roomRows = Object.values(roomMap)
-    .sort((a, b) => a.room.localeCompare(b.room, 'th'))
-    .map(r => `<tr>
-      <td><strong style="color:var(--water)">ห้อง ${esc(r.room)}</strong></td>
-      <td>${esc(r.name)}</td>
-      <td style="text-align:right;color:var(--rent)">${fmt(r.rent)}</td>
-      <td style="text-align:right;color:var(--water)">${fmt(r.water)}</td>
-      <td style="text-align:right;color:var(--elec)">${fmt(r.elec)}</td>
-      <td style="text-align:right;font-family:'Prompt',sans-serif;font-weight:700;color:var(--ok)">${fmt(r.total)}</td>
-      <td style="text-align:center;color:var(--muted)">${r.count} บิล</td>
-    </tr>`).join('');
-
-  document.getElementById('sumRoomTable').innerHTML = roomRows ||
-    '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">ไม่มีข้อมูล</td></tr>';
+  let grand=0;
+  const mRows=MSHORT.map(m=>{const d=mm[m];if(!d.total)return'';grand+=d.total;
+    return`<tr><td style="font-weight:600">${m} ${yearBE}</td>
+    <td style="text-align:right;color:var(--rent)">${fmt(d.rent)}</td>
+    <td style="text-align:right;color:var(--water)">${fmt(d.water)}</td>
+    <td style="text-align:right;color:var(--elec)">${fmt(d.elec)}</td>
+    <td style="text-align:right;color:var(--danger)">${d.fine>0?fmt(d.fine):'—'}</td>
+    <td style="text-align:right;font-family:'Prompt',sans-serif;font-weight:700;color:var(--ok)">${fmt(d.total)}</td>
+    <td style="text-align:center;color:var(--muted)">${d.rooms.size} ห้อง</td></tr>`;}).join('');
+  document.getElementById('sumMonthTable').innerHTML=mRows||'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">ไม่มีข้อมูลในปีนี้</td></tr>';
+  document.getElementById('sum-total-year').textContent=fmt(grand)+' บาท';
+  // Room aggregation
+  const rm={};
+  for(const b of yb){if(!rm[b.room])rm[b.room]={room:b.room,name:b.tenant_name,rent:0,water:0,elec:0,total:0,count:0};
+    rm[b.room].rent+=b.rent||0;rm[b.room].water+=b.water||0;rm[b.room].elec+=b.elec||0;
+    rm[b.room].total+=b.total||0;rm[b.room].count++;}
+  document.getElementById('sumRoomTable').innerHTML=Object.values(rm)
+    .sort((a,b)=>a.room.localeCompare(b.room,undefined,{numeric:true,sensitivity:'base'}))
+    .map(r=>`<tr><td><strong style="color:var(--water)">ห้อง ${esc(r.room)}</strong></td>
+    <td>${esc(r.name)}</td>
+    <td style="text-align:right;color:var(--rent)">${fmt(r.rent)}</td>
+    <td style="text-align:right;color:var(--water)">${fmt(r.water)}</td>
+    <td style="text-align:right;color:var(--elec)">${fmt(r.elec)}</td>
+    <td style="text-align:right;font-family:'Prompt',sans-serif;font-weight:700;color:var(--ok)">${fmt(r.total)}</td>
+    <td style="text-align:center;color:var(--muted)">${r.count} บิล</td></tr>`).join('')
+    ||'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">ไม่มีข้อมูล</td></tr>';
 }
 
 // ============================================================
 // NOTIFICATIONS
 // ============================================================
 async function loadNotifications() {
-  if (!sb) return;
-  const cached = cache.get('notifications');
-  if (cached && !notifOpen) { updateNotifBadge(cached); return; }
-
-  const { data } = await sb.from('notifications')
-    .select('id,message,is_read,bill_id,created_at')
-    .order('created_at', { ascending: false })
-    .limit(30);
-
-  const rows = data || [];
-  cache.set('notifications', rows);
+  const cached=cache.get('notifications');
+  if(cached&&!notifOpen){updateNotifBadge(cached);return;}
+  const{data}=await sb.from('notifications').select('id,message,is_read,bill_id,created_at')
+    .order('created_at',{ascending:false}).limit(30);
+  const rows=data||[];
+  cache.set('notifications',rows);
   updateNotifBadge(rows);
   renderNotifications(rows);
 }
-
-function updateNotifBadge(rows) {
-  const unread = rows.filter(n => !n.is_read).length;
-  document.getElementById('notifDot').classList.toggle('show', unread > 0);
-}
-
+function updateNotifBadge(rows){document.getElementById('notifDot').classList.toggle('show',rows.some(n=>!n.is_read));}
 function renderNotifications(data) {
-  const list = document.getElementById('notifList');
-  if (!data.length) {
-    list.innerHTML = '<div class="empty"><div class="eico">🔕</div><p>ยังไม่มีการแจ้งเตือน</p></div>';
-    return;
-  }
-  list.innerHTML = data.map(n => `
-    <div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="openFromNotif('${n.bill_id}','${n.id}')">
-      <div class="notif-msg">${esc(n.message)}</div>
-      <div class="notif-time">${new Date(n.created_at).toLocaleString('th-TH')}</div>
-    </div>
-  `).join('');
+  const list=document.getElementById('notifList');
+  if(!data.length){list.innerHTML='<div class="empty"><div class="eico">🔕</div><p>ยังไม่มีการแจ้งเตือน</p></div>';return;}
+  list.innerHTML=data.map(n=>`<div class="notif-item ${n.is_read?'':'unread'}" onclick="openFromNotif('${n.bill_id}','${n.id}')">
+    <div class="notif-msg">${esc(n.message)}</div>
+    <div class="notif-time">${new Date(n.created_at).toLocaleString('th-TH')}</div></div>`).join('');
 }
-
-async function openFromNotif(billId, notifId) {
-  await sb.from('notifications').update({ is_read: true }).eq('id', notifId);
-  cache.invalidate('notifications');
+async function openFromNotif(billId,notifId) {
+  await sb.from('notifications').update({is_read:true}).eq('id',notifId);
+  cache.del('notifications');
   document.getElementById('notifDot').classList.remove('show');
-  toggleNotif();
-  openBillDetail(billId);
+  toggleNotif(); openBillDetail(billId);
 }
-
 async function markAllRead() {
-  if (!sb) return;
-  await sb.from('notifications').update({ is_read: true }).eq('is_read', false);
-  cache.invalidate('notifications');
+  await sb.from('notifications').update({is_read:true}).eq('is_read',false);
+  cache.del('notifications');
   document.getElementById('notifDot').classList.remove('show');
   loadNotifications();
 }
-
 function handleNewNotif() {
-  cache.invalidate('notifications', 'payments');
+  cache.del('notifications','payments');
   document.getElementById('notifDot').classList.add('show');
-  loadNotifications();
-  loadPayments();
+  loadNotifications(); loadPayments();
 }
 </script>
 </body>
