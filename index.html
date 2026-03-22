@@ -5,21 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JR Homeplace — แผงควบคุม</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEyMCIgZmlsbD0idXJsKCNvZykiLz4KICA8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Im9nIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmOTczMTYiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYTU4MGMiLz4KICA8L2xpbmVhckdyYWRpZW50PjwvZGVmcz4KICA8dGV4dCB4PSIyNTYiIHk9IjM0MCIgZm9udC1mYW1pbHk9IkFyaWFsIEJsYWNrLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQwIiBmb250LXdlaWdodD0iOTAwIgogICAgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiPkpSPC90ZXh0Pgo8L3N2Zz4=">
-<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEyMCIgZmlsbD0idXJsKCNvZykiLz4KICA8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Im9nIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmOTczMTYiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYTU4MGMiLz4KICA8L2xpbmVhckdyYWRpZW50PjwvZGVmcz4KICA8dGV4dCB4PSIyNTYiIHk9IjM0MCIgZm9udC1mYW1pbHk9IkFyaWFsIEJsYWNrLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQwIiBmb250LXdlaWdodD0iOTAwIgogICAgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiPkpSPC90ZXh0Pgo8L3N2Zz4=">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="JR Admin">
 <meta name="theme-color" content="#f97316">
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiSlIgSG9tZXBsYWNlIEFkbWluIiwic2hvcnRfbmFtZSI6IkpSIEFkbWluIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIWnBaWGRDYjNnOUlqQWdNQ0ExTVRJZ05URXlJajRLSUNBOGNtVmpkQ0IzYVdSMGFEMGlOVEV5SWlCb1pXbG5hSFE5SWpVeE1pSWdjbmc5SWpFeU1DSWdabWxzYkQwaWRYSnNLQ052WnlraUx6NEtJQ0E4WkdWbWN6NDhiR2x1WldGeVIzSmhaR2xsYm5RZ2FXUTlJbTluSWlCNE1UMGlNQ1VpSUhreFBTSXdKU0lnZURJOUlqRXdNQ1VpSUhreVBTSXhNREFsSWo0S0lDQWdJRHh6ZEc5d0lHOW1abk5sZEQwaU1DVWlJSE4wZVd4bFBTSnpkRzl3TFdOdmJHOXlPaU5tT1Rjek1UWWlMejQ4YzNSdmNDQnZabVp6WlhROUlqRXdNQ1VpSUhOMGVXeGxQU0p6ZEc5d0xXTnZiRzl5T2lObFlUVTRNR01pTHo0S0lDQThMMnhwYm1WaGNrZHlZV1JwWlc1MFBqd3ZaR1ZtY3o0S0lDQThkR1Y0ZENCNFBTSXlOVFlpSUhrOUlqTTBNQ0lnWm05dWRDMW1ZVzFwYkhrOUlrRnlhV0ZzSUVKc1lXTnJMSE5oYm5NdGMyVnlhV1lpSUdadmJuUXRjMmw2WlQwaU1qUXdJaUJtYjI1MExYZGxhV2RvZEQwaU9UQXdJZ29nSUNBZ2RHVjRkQzFoYm1Ob2IzSTlJbTFwWkdSc1pTSWdabWxzYkQwaWQyaHBkR1VpUGtwU1BDOTBaWGgwUGdvOEwzTjJaejQ9Iiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV0sInN0YXJ0X3VybCI6Ii9hZG1pbi5odG1sIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJ0aGVtZV9jb2xvciI6IiNmOTczMTYiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiI2YwZjRmOCJ9">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Prompt:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Supabase loaded async, deferred init -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <style>
 :root {
-  --bg:#f0f4f8; --surf:#ffffff; --surf2:#f8fafc; --surf3:#f1f5f9;
-  --border:#e2e8f0; --border2:#cbd5e1;
-  --water:#0284c7; --elec:#d97706; --rent:#7c3aed;
-  --ok:#059669; --warn:#ea580c; --danger:#dc2626;
-  --text:#0f172a; --muted:#64748b; --muted2:#94a3b8;
+  --bg:#f0f4f8;--surf:#ffffff;--surf2:#f8fafc;--surf3:#f1f5f9;
+  --border:#e2e8f0;--border2:#cbd5e1;
+  --water:#0284c7;--elec:#d97706;--rent:#7c3aed;
+  --ok:#059669;--warn:#ea580c;--danger:#dc2626;
+  --text:#0f172a;--muted:#64748b;--muted2:#94a3b8;
   --radius:16px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -27,75 +28,46 @@ body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(ellipse 60% 40% at 15% 5%,rgba(2,132,199,.05) 0%,transparent 60%),
              radial-gradient(ellipse 50% 35% at 85% 90%,rgba(124,58,237,.04) 0%,transparent 60%)}
-
-/* CONFIG BANNER */
-#configBanner{position:fixed;top:0;left:0;right:0;z-index:999;background:#7c3aed;color:#fff;
-  text-align:center;padding:10px 16px;font-size:13px;font-weight:600;display:none}
-#configBanner a{color:#c4b5fd;cursor:pointer;text-decoration:underline}
-
-/* SIDEBAR */
 .sidebar{width:240px;background:var(--surf);border-right:1px solid var(--border);box-shadow:2px 0 12px rgba(0,0,0,.06);
-  height:100vh;position:fixed;left:0;top:0;display:flex;flex-direction:column;z-index:50;
-  transition:transform .3s}
+  height:100vh;position:fixed;left:0;top:0;display:flex;flex-direction:column;z-index:50;transition:transform .3s}
 .sidebar.hide{transform:translateX(-100%)}
-.sb-head{padding:18px 16px 14px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between}
-.sb-logo{font-family:'Prompt',sans-serif;font-size:14px;font-weight:700;
-  display:flex;align-items:center;gap:8px}
-.sb-logo-icons{display:flex;gap:3px}
-.sb-logo-icons span{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;
-  justify-content:center;font-size:13px}
-.ico-w{background:rgba(56,189,248,.15)} .ico-e{background:rgba(251,191,36,.15)}
-.sb-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;
-  padding:4px 8px;border-radius:6px;transition:background .15s}
+.sb-head{padding:18px 16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sb-logo{font-family:'Prompt',sans-serif;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.sb-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px 8px;border-radius:6px;transition:background .15s}
 .sb-close:hover{background:var(--surf2);color:var(--text)}
-
 .sb-nav{flex:1;overflow-y:auto;padding:10px 10px 20px}
 .sb-nav::-webkit-scrollbar{width:3px}
 .sb-nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-.nav-label{font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.1em;
-  text-transform:uppercase;padding:10px 8px 6px}
-.nav-btn{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:10px;
-  cursor:pointer;margin-bottom:2px;transition:background .15s;border:1px solid transparent;
-  background:none;color:var(--text);font-family:'Sarabun',sans-serif;font-size:14px;width:100%}
+.nav-label{font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.1em;text-transform:uppercase;padding:10px 8px 6px}
+.nav-btn{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:10px;cursor:pointer;margin-bottom:2px;
+  transition:background .15s;border:1px solid transparent;background:none;color:var(--text);
+  font-family:'Sarabun',sans-serif;font-size:14px;width:100%}
 .nav-btn:hover{background:var(--surf2)}
 .nav-btn.active{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.25);color:var(--water)}
-.nav-btn .badge{margin-left:auto;background:var(--danger);color:#fff;border-radius:20px;
-  font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center}
-
-/* TOPBAR */
+.nav-btn .badge{margin-left:auto;background:var(--danger);color:#fff;border-radius:20px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center}
 .topbar{position:fixed;top:0;left:240px;right:0;height:54px;background:rgba(255,255,255,.92);
   backdrop-filter:blur(10px);border-bottom:1px solid var(--border);box-shadow:0 1px 8px rgba(0,0,0,.06);
   display:flex;align-items:center;padding:0 20px;gap:12px;z-index:40;transition:left .3s}
 .topbar.wide{left:0}
-.btn-menu{background:var(--surf2);border:1px solid var(--border);color:var(--text);
-  width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:15px;
-  display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0}
+.btn-menu{background:var(--surf2);border:1px solid var(--border);color:var(--text);width:34px;height:34px;
+  border-radius:9px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;
+  transition:background .15s;flex-shrink:0}
 .btn-menu:hover{background:var(--border)}
 .topbar-title{font-family:'Prompt',sans-serif;font-size:14px;font-weight:700}
-.topbar-room{font-size:12px;color:var(--water);background:rgba(56,189,248,.1);
-  border:1px solid rgba(56,189,248,.25);padding:3px 10px;border-radius:20px}
 .notif-btn{margin-left:auto;position:relative;background:var(--surf2);border:1px solid var(--border);
   color:var(--text);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:15px;
   display:flex;align-items:center;justify-content:center;transition:background .15s}
 .notif-btn:hover{background:var(--border)}
-.notif-dot{position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--danger);
-  border-radius:50%;display:none}
+.notif-dot{position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--danger);border-radius:50%;display:none}
 .notif-dot.show{display:block}
-
-/* MAIN */
 .main{margin-left:240px;flex:1;padding:72px 20px 40px;position:relative;z-index:1;transition:margin-left .3s}
 .main.wide{margin-left:0}
-.page{display:none;animation:fadeUp .4s ease both}
+.page{display:none;animation:fadeUp .3s ease both}
 .page.active{display:block}
-
-/* CARDS */
 .card{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px;box-shadow:0 1px 6px rgba(0,0,0,.05)}
 .card-head{display:flex;align-items:center;gap:8px;margin-bottom:18px}
 .cdot{width:9px;height:9px;border-radius:50%}
 .card-title{font-family:'Prompt',sans-serif;font-size:14px;font-weight:700}
-
-/* FORM */
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .fgrid.c3{grid-template-columns:1fr 1fr 1fr}
 .full{grid-column:1/-1}
@@ -107,10 +79,8 @@ input,select,textarea{background:var(--surf2);border:1px solid var(--border);bor
 input:focus,select:focus,textarea:focus{border-color:var(--water);box-shadow:0 0 0 3px rgba(56,189,248,.1)}
 textarea{resize:vertical;min-height:70px}
 input::placeholder,textarea::placeholder{color:var(--muted2)}
-
-/* BUTTONS */
-.btn{padding:10px 18px;border-radius:10px;border:none;font-family:'Prompt',sans-serif;
-  font-size:13px;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s,opacity .15s;display:inline-flex;align-items:center;gap:7px}
+.btn{padding:10px 18px;border-radius:10px;border:none;font-family:'Prompt',sans-serif;font-size:13px;
+  font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s,opacity .15s;display:inline-flex;align-items:center;gap:7px}
 .btn-primary{background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:#fff;box-shadow:0 3px 14px rgba(56,189,248,.3)}
 .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(56,189,248,.4)}
 .btn-success{background:linear-gradient(135deg,#34d399,#10b981);color:#051a0e;box-shadow:0 3px 14px rgba(52,211,153,.3)}
@@ -121,117 +91,62 @@ input::placeholder,textarea::placeholder{color:var(--muted2)}
 .btn-ghost:hover{background:var(--border2)}
 .btn-full{width:100%;justify-content:center}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
-
-/* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
 .stat-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:0 1px 6px rgba(0,0,0,.05)}
 .stat-val{font-family:'Prompt',sans-serif;font-size:22px;font-weight:800;margin-bottom:2px}
 .stat-lbl{font-size:12px;color:var(--muted)}
-
-/* TABLE */
 .tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead tr{background:var(--surf2)}
-th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);
-  letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--border)}
 td{padding:11px 14px;border-bottom:1px solid var(--border)}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(255,255,255,.015)}
-
-/* STATUS PILLS */
-.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;
-  font-size:11px;font-weight:700}
+tr:hover td{background:rgba(0,0,0,.012)}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
 .pill-pending{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:var(--elec)}
 .pill-partial{background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.3);color:var(--water)}
 .pill-paid{background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.3);color:var(--warn)}
 .pill-confirmed{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--ok)}
 .pill-verify{background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);color:var(--rent)}
 .pill-rejected{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:var(--danger)}
-
-/* UNIT DISPLAY */
-.unit-row{display:flex;align-items:center;justify-content:space-between;
-  background:var(--surf2);border:1px solid var(--border);border-radius:9px;
-  padding:10px 13px;margin-top:8px}
+.unit-row{display:flex;align-items:center;justify-content:space-between;background:var(--surf2);
+  border:1px solid var(--border);border-radius:9px;padding:10px 13px;margin-top:8px}
 .unit-val{font-family:'Prompt',sans-serif;font-weight:700;font-size:16px}
-.sum-row{display:flex;justify-content:space-between;align-items:center;
-  padding:9px 0;border-bottom:1px solid var(--border);font-size:14px}
+.sum-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px}
 .sum-row:last-of-type{border-bottom:none}
-.grand{margin-top:10px;padding:13px;background:var(--surf2);border-radius:11px;
-  display:flex;justify-content:space-between;align-items:center}
+.grand{margin-top:10px;padding:13px;background:var(--surf2);border-radius:11px;display:flex;justify-content:space-between;align-items:center}
 .grand-amt{font-family:'Prompt',sans-serif;font-size:22px;font-weight:800;
-  background:linear-gradient(90deg,var(--water),var(--elec));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-
-/* NOTIFICATIONS PANEL */
-.notif-panel{position:fixed;top:54px;right:0;width:320px;max-height:calc(100vh - 54px);
-  overflow-y:auto;background:var(--surf);border-left:1px solid var(--border);box-shadow:-4px 0 16px rgba(0,0,0,.08);
+  background:linear-gradient(90deg,var(--water),var(--elec));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.notif-panel{position:fixed;top:54px;right:0;width:320px;max-height:calc(100vh - 54px);overflow-y:auto;
+  background:var(--surf);border-left:1px solid var(--border);box-shadow:-4px 0 16px rgba(0,0,0,.08);
   z-index:90;transform:translateX(100%);transition:transform .3s;padding:16px}
 .notif-panel.open{transform:translateX(0)}
-.notif-item{background:var(--surf2);border:1px solid var(--border);border-radius:11px;
-  padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color .2s}
+.notif-item{background:var(--surf2);border:1px solid var(--border);border-radius:11px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color .2s}
 .notif-item:hover{border-color:var(--water)}
 .notif-item.unread{border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.04)}
 .notif-time{font-size:11px;color:var(--muted);margin-top:5px}
 .notif-msg{font-size:13px;font-weight:600}
-
-/* MODAL */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
-  backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center}
 .overlay.show{display:flex}
 .modal{background:var(--surf);border:1px solid var(--border);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.15);
   padding:28px;max-width:520px;width:95%;max-height:90vh;overflow-y:auto;
-  animation:popIn .3s cubic-bezier(.34,1.56,.64,1) both}
+  animation:popIn .25s cubic-bezier(.34,1.56,.64,1) both}
 .modal h2{font-family:'Prompt',sans-serif;font-size:17px;font-weight:700;margin-bottom:5px}
 .modal-sub{color:var(--muted);font-size:13px;margin-bottom:20px}
 .modal-btns{display:flex;gap:10px;margin-top:20px}
-
-/* SLIP PREVIEW */
 .slip-img{max-width:100%;border-radius:12px;border:1px solid var(--border);margin-top:10px}
-
-/* UPLOAD ZONE */
-.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:20px;
-  text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--surf2)}
-.upload-zone:hover{border-color:rgba(52,211,153,.5);background:rgba(52,211,153,.03)}
-.upload-zone.has-file{border-color:rgba(52,211,153,.5)}
-
-/* QR UPLOAD */
-.qr-upload-zone{border:2px dashed var(--border);border-radius:12px;padding:18px;
-  text-align:center;cursor:pointer;transition:border-color .2s,background .2s;
-  background:var(--surf2);position:relative}
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--surf2)}
+.upload-zone:hover,.upload-zone.has-file{border-color:rgba(52,211,153,.5)}
+.qr-upload-zone{border:2px dashed var(--border);border-radius:12px;padding:18px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--surf2);position:relative}
 .qr-upload-zone:hover{border-color:rgba(52,211,153,.5)}
-
-/* PAGE HEADER */
 .page-hd{margin-bottom:22px}
 .page-hd h1{font-family:'Prompt',sans-serif;font-size:20px;font-weight:800;margin-bottom:3px}
 .page-hd p{font-size:13px;color:var(--muted)}
-
-/* ROOM SELECTOR */
-.room-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
-.room-tab{padding:7px 14px;border-radius:10px;border:1px solid var(--border);
-  background:var(--surf2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;
-  transition:all .15s;font-family:'Prompt',sans-serif}
-.room-tab:hover{border-color:var(--border2);color:var(--text)}
-.room-tab.active{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.35);color:var(--water)}
-.room-tab.add{border-style:dashed;color:var(--water);border-color:rgba(56,189,248,.35)}
-.room-tab.add:hover{background:rgba(56,189,248,.07)}
-
-/* EMPTY */
-.empty{text-align:center;padding:50px 20px;color:var(--muted)}
-.empty .eico{font-size:48px;margin-bottom:12px;opacity:.4}
-.empty h3{font-family:'Prompt',sans-serif;font-size:16px;margin-bottom:6px;color:var(--muted)}
-
-/* PAYMENT HISTORY */
-.pay-item{background:var(--surf2);border:1px solid var(--border);border-radius:11px;
-  padding:14px;margin-bottom:8px}
-.pay-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-
-/* ROOM GRID */
 .room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:4px}
 .room-card{border-radius:14px;padding:14px 12px;cursor:pointer;transition:transform .15s,box-shadow .15s;
   border:2px solid transparent;position:relative;height:120px;display:flex;flex-direction:column;justify-content:space-between}
 .room-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
-.room-card.status-pending{background:#fef2f2;border-color:#fca5a5}
-.room-card.status-partial{background:#fef2f2;border-color:#fca5a5}
+.room-card.status-pending,.room-card.status-partial{background:#fef2f2;border-color:#fca5a5}
 .room-card.status-paid{background:#fffbeb;border-color:#fde68a}
 .room-card.status-confirmed{background:#f0fdf4;border-color:#86efac}
 .room-card.status-empty{background:#f8fafc;border-color:#e2e8f0}
@@ -239,11 +154,16 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .room-name{font-size:11px;color:#64748b;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .room-amt{font-family:'Prompt',sans-serif;font-size:14px;font-weight:800;margin-top:8px}
 .room-status-dot{width:8px;height:8px;border-radius:50%;position:absolute;top:10px;right:10px}
-
-@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-@keyframes popIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty .eico{font-size:48px;margin-bottom:12px;opacity:.4}
+.empty h3{font-family:'Prompt',sans-serif;font-size:16px;margin-bottom:6px;color:var(--muted)}
+.pay-item{background:var(--surf2);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:8px}
+.pay-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.skeleton{background:linear-gradient(90deg,var(--surf2) 25%,var(--border) 50%,var(--surf2) 75%);
+  background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:8px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
 @media(max-width:700px){
   .sidebar{transform:translateX(-100%)}.sidebar.mobile-open{transform:translateX(0)}
   .main{margin-left:0!important}.topbar{left:0!important}
@@ -254,19 +174,12 @@ tr:hover td{background:rgba(255,255,255,.015)}
 </head>
 <body>
 
-<!-- CONFIG BANNER -->
-<div id="configBanner">
-  ⚠️ ยังไม่ได้ตั้งค่า Supabase — <a onclick="showPage('settings')">คลิกที่นี่เพื่อตั้งค่า</a> (ดูคู่มือใน SETUP.md)
-</div>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sb-head">
     <div class="sb-logo">
       <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#f97316,#ea580c);
-        display:flex;align-items:center;justify-content:center;
-        font-family:'Prompt',sans-serif;font-size:14px;font-weight:800;color:#fff;
-        box-shadow:0 3px 10px rgba(249,115,22,.4);flex-shrink:0">JR</div>
+        display:flex;align-items:center;justify-content:center;font-family:'Prompt',sans-serif;
+        font-size:14px;font-weight:800;color:#fff;box-shadow:0 3px 10px rgba(249,115,22,.4);flex-shrink:0">JR</div>
       แผงควบคุม
     </div>
     <button class="sb-close" onclick="toggleSB()">✕</button>
@@ -283,12 +196,9 @@ tr:hover td{background:rgba(255,255,255,.015)}
     <button class="nav-btn" onclick="showPage('create-bill')" id="nav-create-bill">➕ สร้างบิลใหม่</button>
     <button class="nav-btn" onclick="showPage('tenants')" id="nav-tenants">👥 ผู้เช่า</button>
     <button class="nav-btn" onclick="showPage('summary')" id="nav-summary">💰 สรุปรายรับ</button>
-
   </div>
-
 </aside>
 
-<!-- TOPBAR -->
 <div class="topbar" id="topbar">
   <button class="btn-menu" onclick="toggleSB()">☰</button>
   <span class="topbar-title">ระบบหอพัก</span>
@@ -297,7 +207,6 @@ tr:hover td{background:rgba(255,255,255,.015)}
   </button>
 </div>
 
-<!-- NOTIFICATION PANEL -->
 <div class="notif-panel" id="notifPanel">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
     <span style="font-family:'Prompt',sans-serif;font-size:14px;font-weight:700">🔔 การแจ้งเตือน</span>
@@ -308,24 +217,21 @@ tr:hover td{background:rgba(255,255,255,.015)}
 
 <main class="main" id="main">
 
-  <!-- ===== DASHBOARD ===== -->
+  <!-- DASHBOARD -->
   <div class="page active" id="page-dashboard">
     <div class="page-hd"><h1>📊 ภาพรวม</h1><p>สรุปสถานะทุกห้อง</p></div>
-    <!-- Stats row -->
     <div class="stats-grid" style="margin-bottom:16px">
       <div class="stat-card"><div class="stat-val" id="st-rooms" style="color:var(--water)">—</div><div class="stat-lbl">ห้องทั้งหมด</div></div>
       <div class="stat-card"><div class="stat-val" id="st-pending" style="color:var(--danger)">—</div><div class="stat-lbl">🔴 รอชำระ</div></div>
       <div class="stat-card"><div class="stat-val" id="st-partial" style="color:var(--elec)">—</div><div class="stat-lbl">🟡 รอยืนยัน</div></div>
       <div class="stat-card"><div class="stat-val" id="st-confirm" style="color:var(--ok)">—</div><div class="stat-lbl">🟢 ชำระแล้ว</div></div>
     </div>
-    <!-- Legend -->
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--muted)">
-      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#fca5a5;display:inline-block"></span>รอชำระ / ค้างชำระ</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#fca5a5;display:inline-block"></span>รอชำระ/ค้างชำระ</span>
       <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#fde68a;display:inline-block"></span>รอยืนยันสลิป</span>
       <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#86efac;display:inline-block"></span>ยืนยันแล้ว</span>
       <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#e2e8f0;display:inline-block"></span>ไม่มีบิล</span>
     </div>
-    <!-- Room grid -->
     <div class="card" style="padding:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div class="card-head" style="margin-bottom:0"><div class="cdot" style="background:var(--water)"></div><span class="card-title">ผังห้องพัก</span></div>
@@ -339,7 +245,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
     </div>
   </div>
 
-  <!-- ===== BILLS ===== -->
+  <!-- BILLS -->
   <div class="page" id="page-bills">
     <div class="page-hd"><h1>📋 บิลทั้งหมด</h1><p>ดูและจัดการบิลทุกห้อง</p></div>
     <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
@@ -359,25 +265,21 @@ tr:hover td{background:rgba(255,255,255,.015)}
     </div>
   </div>
 
-  <!-- ===== PAYMENTS ===== -->
+  <!-- PAYMENTS -->
   <div class="page" id="page-payments">
     <div class="page-hd"><h1>💸 การชำระเงิน</h1><p>ตรวจสอบและยืนยันหลักฐานการโอน</p></div>
     <div id="paymentsList"><div class="empty"><div class="eico">💸</div><p>ยังไม่มีการชำระเงิน</p></div></div>
   </div>
 
-  <!-- ===== CREATE BILL ===== -->
+  <!-- CREATE BILL -->
   <div class="page" id="page-create-bill">
     <div class="page-hd"><h1>➕ สร้างบิลใหม่</h1><p>เลือกผู้เช่าและกรอกข้อมูลมิเตอร์</p></div>
-
-    <!-- เลือกผู้เช่า -->
     <div class="card">
       <div class="card-head"><div class="cdot" style="background:var(--water);box-shadow:0 0 7px rgba(56,189,248,.5)"></div><span class="card-title">ผู้เช่า</span></div>
       <div class="fgrid">
         <div class="fg full">
           <label>เลือกผู้เช่า</label>
-          <select id="cb-tenant" onchange="onTenantSelect()">
-            <option value="">— เลือกผู้เช่า —</option>
-          </select>
+          <select id="cb-tenant" onchange="onTenantSelect()"><option value="">— เลือกผู้เช่า —</option></select>
         </div>
         <div class="fg"><label>เดือน</label>
           <select id="cb-month">
@@ -389,21 +291,15 @@ tr:hover td{background:rgba(255,255,255,.015)}
             <option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option>
           </select>
         </div>
-        <div class="fg"><label>ปี (พ.ศ.)</label>
-          <select id="cb-year"></select>
-        </div>
+        <div class="fg"><label>ปี (พ.ศ.)</label><select id="cb-year"></select></div>
       </div>
     </div>
-
-    <!-- ค่าห้อง -->
     <div class="card">
-      <div class="card-head"><div class="cdot" style="background:var(--rent);box-shadow:0 0 7px rgba(167,139,250,.5)"></div><span class="card-title">🏠 ค่าห้องพัก</span></div>
+      <div class="card-head"><div class="cdot" style="background:var(--rent)"></div><span class="card-title">🏠 ค่าห้องพัก</span></div>
       <div class="fg"><label>ค่าเช่าห้อง (บาท)</label><input type="number" id="cb-rent" placeholder="0" oninput="updateGrand()"></div>
     </div>
-
-    <!-- น้ำ -->
     <div class="card">
-      <div class="card-head"><div class="cdot" style="background:var(--water);box-shadow:0 0 7px rgba(56,189,248,.5)"></div><span class="card-title">💧 ค่าน้ำประปา</span></div>
+      <div class="card-head"><div class="cdot" style="background:var(--water)"></div><span class="card-title">💧 ค่าน้ำประปา</span></div>
       <div class="fgrid">
         <div class="fg"><label>มิเตอร์ก่อนหน้า</label><input type="number" id="cb-wprev" placeholder="0" oninput="calcWater()"></div>
         <div class="fg"><label>มิเตอร์ปัจจุบัน</label><input type="number" id="cb-wcurr" placeholder="0" oninput="calcWater()"></div>
@@ -412,10 +308,8 @@ tr:hover td{background:rgba(255,255,255,.015)}
       <div class="unit-row"><span style="color:var(--muted);font-size:13px">หน่วยที่ใช้</span><span class="unit-val" style="color:var(--water)" id="cb-wunits">0 หน่วย</span></div>
       <div class="unit-row" style="margin-top:6px"><span style="color:var(--muted);font-size:13px">💧 รวมค่าน้ำ</span><span class="unit-val" style="color:var(--water)" id="cb-wtotal">0.00 บาท</span></div>
     </div>
-
-    <!-- ไฟ -->
     <div class="card">
-      <div class="card-head"><div class="cdot" style="background:var(--elec);box-shadow:0 0 7px rgba(251,191,36,.5)"></div><span class="card-title">⚡ ค่าไฟฟ้า</span></div>
+      <div class="card-head"><div class="cdot" style="background:var(--elec)"></div><span class="card-title">⚡ ค่าไฟฟ้า</span></div>
       <div class="fgrid">
         <div class="fg"><label>มิเตอร์ก่อนหน้า</label><input type="number" id="cb-eprev" placeholder="0" oninput="calcElec()"></div>
         <div class="fg"><label>มิเตอร์ปัจจุบัน</label><input type="number" id="cb-ecurr" placeholder="0" oninput="calcElec()"></div>
@@ -424,17 +318,12 @@ tr:hover td{background:rgba(255,255,255,.015)}
       <div class="unit-row"><span style="color:var(--muted);font-size:13px">หน่วยที่ใช้</span><span class="unit-val" style="color:var(--elec)" id="cb-eunits">0 หน่วย</span></div>
       <div class="unit-row" style="margin-top:6px"><span style="color:var(--muted);font-size:13px">⚡ รวมค่าไฟ</span><span class="unit-val" style="color:var(--elec)" id="cb-etotal">0.00 บาท</span></div>
     </div>
-
-    <!-- สรุป + ค่าปรับ -->
     <div class="card">
-      <div class="card-head"><div class="cdot" style="background:#a78bfa;box-shadow:0 0 7px rgba(167,139,250,.5)"></div><span class="card-title">สรุปยอด</span></div>
+      <div class="card-head"><div class="cdot" style="background:#a78bfa"></div><span class="card-title">สรุปยอด</span></div>
       <div class="sum-row"><span style="color:var(--muted)">🏠 ค่าห้อง</span><span style="font-weight:700;color:var(--rent)" id="s-rent">0.00 บาท</span></div>
       <div class="sum-row"><span style="color:var(--muted)">💧 ค่าน้ำ</span><span style="font-weight:700;color:var(--water)" id="s-water">0.00 บาท</span></div>
       <div class="sum-row"><span style="color:var(--muted)">⚡ ค่าไฟ</span><span style="font-weight:700;color:var(--elec)" id="s-elec">0.00 บาท</span></div>
-      <div class="sum-row">
-        <span style="color:var(--muted)">⚠️ ค่าปรับ</span>
-        <span style="font-weight:700;color:var(--danger)" id="s-fine">0.00 บาท</span>
-      </div>
+      <div class="sum-row"><span style="color:var(--muted)">⚠️ ค่าปรับ</span><span style="font-weight:700;color:var(--danger)" id="s-fine">0.00 บาท</span></div>
       <div style="display:flex;gap:10px;margin:8px 0 4px">
         <input type="number" id="cb-fine" placeholder="ค่าปรับ (บาท)" oninput="updateGrand()" style="flex:1">
         <input type="text" id="cb-fine-reason" placeholder="หมายเหตุค่าปรับ" style="flex:1.5">
@@ -442,27 +331,23 @@ tr:hover td{background:rgba(255,255,255,.015)}
       <div class="grand"><span style="font-family:'Prompt',sans-serif;font-weight:700">💰 รวมทั้งสิ้น</span><span class="grand-amt" id="s-grand">0.00 บาท</span></div>
       <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="submitBill()">✅ สร้างและส่งบิล</button>
     </div>
-
-    <!-- ข้อมูลหอพัก -->
     <div class="card">
-      <div class="card-head"><div class="cdot" style="background:var(--rent);box-shadow:0 0 7px rgba(167,139,250,.5)"></div><span class="card-title">🏠 ข้อมูลหอพัก (แสดงในใบเสร็จ)</span></div>
+      <div class="card-head"><div class="cdot" style="background:var(--rent)"></div><span class="card-title">🏠 ข้อมูลหอพัก</span></div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px">ตั้งค่าครั้งเดียว บันทึกอัตโนมัติ</div>
       <div class="fgrid">
         <div class="fg full"><label>ชื่อหอพัก</label><input type="text" id="dorm-name" placeholder="เช่น หอพักสุขสบาย" oninput="saveDormSettings()"></div>
         <div class="fg full"><label>ที่อยู่หอพัก</label><input type="text" id="dorm-address" placeholder="เลขที่ ถนน ตำบล อำเภอ จังหวัด" oninput="saveDormSettings()"></div>
         <div class="fg"><label>เบอร์โทรหอพัก</label><input type="text" id="dorm-phone" placeholder="0xx-xxx-xxxx" oninput="saveDormSettings()"></div>
         <div class="fg"><label>เลขประจำตัวผู้เสียภาษี</label><input type="text" id="dorm-owner" placeholder="เช่น 1234567890123" oninput="saveDormSettings()"></div>
-        <div class="fg"><label>ชื่อผู้รับเงิน (ลงนามในใบเสร็จ)</label><input type="text" id="dorm-signer" placeholder="ชื่อ-นามสกุล" oninput="saveDormSettings()"></div>
+        <div class="fg"><label>ชื่อผู้รับเงิน</label><input type="text" id="dorm-signer" placeholder="ชื่อ-นามสกุล" oninput="saveDormSettings()"></div>
       </div>
     </div>
-
-    <!-- ช่องทางชำระ (บันทึกไว้ใช้ทุกบิล) -->
     <div class="card">
-      <div class="card-head"><div class="cdot" style="background:var(--ok);box-shadow:0 0 7px rgba(52,211,153,.5)"></div><span class="card-title">💳 ช่องทางชำระเงิน</span></div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">ตั้งค่าครั้งเดียว บันทึกอัตโนมัติ แนบกับทุกบิล</div>
+      <div class="card-head"><div class="cdot" style="background:var(--ok)"></div><span class="card-title">💳 ช่องทางชำระเงิน</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">ตั้งค่าครั้งเดียว บันทึกอัตโนมัติ</div>
       <div id="qrUploadZone" class="qr-upload-zone" onclick="document.getElementById('qrFileIn').click()">
         <div id="qrPlaceholder"><div style="font-size:28px;margin-bottom:6px">📷</div><div style="font-size:13px;color:var(--muted)">อัปโหลดรูป QR พร้อมเพย์</div></div>
-        <img id="qrPrev" style="display:none;max-width:160px;max-height:160px;border-radius:9px;margin:0 auto">
+        <img id="qrPrev" style="display:none;max-width:160px;max-height:160px;border-radius:9px;margin:0 auto" loading="lazy">
         <button id="qrDelBtn" onclick="delQr(event)" style="display:none;position:absolute;top:8px;right:8px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);border-radius:6px;color:var(--danger);font-size:11px;padding:4px 8px;cursor:pointer">✕ ลบ</button>
       </div>
       <input type="file" id="qrFileIn" accept="image/*" style="display:none" onchange="handleQrUpload(event)">
@@ -474,11 +359,9 @@ tr:hover td{background:rgba(255,255,255,.015)}
     </div>
   </div>
 
-  <!-- ===== TENANTS ===== -->
+  <!-- TENANTS -->
   <div class="page" id="page-tenants">
-    <div class="page-hd">
-      <h1>👥 ผู้เช่า</h1><p>จัดการข้อมูลผู้เช่าทุกห้อง</p>
-    </div>
+    <div class="page-hd"><h1>👥 ผู้เช่า</h1><p>จัดการข้อมูลผู้เช่าทุกห้อง</p></div>
     <button class="btn btn-primary" style="margin-bottom:16px" onclick="openAddTenant()">➕ เพิ่มผู้เช่าใหม่</button>
     <div class="tbl-wrap">
       <table>
@@ -488,7 +371,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
     </div>
   </div>
 
-  <!-- ===== SETTINGS ===== -->
+  <!-- SETTINGS -->
   <div class="page" id="page-settings">
     <div class="page-hd"><h1>⚙️ ตั้งค่า Supabase</h1><p>กรอก credentials จาก Supabase project ของคุณ</p></div>
     <div class="card">
@@ -498,20 +381,10 @@ tr:hover td{background:rgba(255,255,255,.015)}
         <div style="font-family:'Prompt',sans-serif;font-weight:700;color:var(--ok)">เชื่อมต่อ Supabase แล้ว</div>
         <div style="font-size:12px;color:var(--muted);margin-top:4px">mdnupimieldwqrgxczgu.supabase.co</div>
       </div>
-      <div id="conn-status" style="margin-top:12px;font-size:13px;text-align:center"></div>
-    </div>
-    <div class="card" style="margin-top:0">
-      <div class="card-head"><div class="cdot" style="background:var(--muted)"></div><span class="card-title">คู่มือการตั้งค่า</span></div>
-      <ol style="font-size:13px;color:var(--muted);line-height:2;padding-left:18px">
-        <li>ไปที่ <strong style="color:var(--text)">supabase.com</strong> → สร้าง account และ project ใหม่ (ฟรี)</li>
-        <li>ไปที่ <strong style="color:var(--text)">SQL Editor</strong> → รัน SQL จากไฟล์ <strong style="color:var(--text)">SETUP.md</strong></li>
-        <li>ไปที่ <strong style="color:var(--text)">Settings → API</strong> → คัดลอก Project URL และ anon key</li>
-        <li>วางค่าด้านบนแล้วกด บันทึก</li>
-      </ol>
     </div>
   </div>
 
-  <!-- ===== SUMMARY ===== -->
+  <!-- SUMMARY -->
   <div class="page" id="page-summary">
     <div class="page-hd"><h1>💰 สรุปรายรับ</h1><p>รายรับรวมแต่ละเดือนและแยกตามห้อง</p></div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">
@@ -520,7 +393,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
     </div>
     <div class="card">
       <div class="card-head">
-        <div class="cdot" style="background:var(--ok);box-shadow:0 0 7px rgba(52,211,153,.5)"></div>
+        <div class="cdot" style="background:var(--ok)"></div>
         <span class="card-title">รายรับรวมแต่ละเดือน</span>
         <span style="margin-left:auto;font-family:'Prompt',sans-serif;font-size:18px;font-weight:800;color:var(--ok)" id="sum-total-year">—</span>
       </div>
@@ -533,7 +406,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
     </div>
     <div class="card">
       <div class="card-head">
-        <div class="cdot" style="background:var(--water);box-shadow:0 0 7px rgba(56,189,248,.5)"></div>
+        <div class="cdot" style="background:var(--water)"></div>
         <span class="card-title">รายรับแยกตามห้อง (ทั้งปี)</span>
       </div>
       <div class="tbl-wrap">
@@ -555,7 +428,6 @@ tr:hover td{background:rgba(255,255,255,.015)}
     <div id="bd-body"></div>
     <div class="modal-btns">
       <button class="btn btn-ghost" onclick="closeModal('billDetailOverlay')">ปิด</button>
-
     </div>
   </div>
 </div>
@@ -592,9 +464,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
       <label>ยืนยันยอดรับจริง (บาท)</label>
       <input type="number" id="vr-amount" placeholder="กรอกจำนวนเงิน">
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
-      ถ้าเลือก "บางส่วน" ระบบจะบันทึกเฉพาะยอดที่กรอก ส่วนที่เหลือยังค้างชำระ
-    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">ถ้าเลือก "บางส่วน" ระบบจะบันทึกเฉพาะยอดที่กรอก ส่วนที่เหลือยังค้างชำระ</div>
     <div class="modal-btns">
       <button class="btn btn-ghost" onclick="closeModal('verifyOverlay')">ยกเลิก</button>
       <button class="btn btn-danger" onclick="doVerify(false)">❌ ปฏิเสธ</button>
@@ -620,54 +490,88 @@ tr:hover td{background:rgba(255,255,255,.015)}
   </div>
 </div>
 
-<!-- MOBILE BACKDROP -->
 <div id="mBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:45" onclick="closeMobile()"></div>
 
 <script>
 // ============================================================
-// CONFIG
+// CONFIG & GLOBALS
 // ============================================================
 const SUPA_URL = 'https://mdnupimieldwqrgxczgu.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kbnVwaW1pZWxkd3FyZ3hjemd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyODQwNDAsImV4cCI6MjA4Nzg2MDA0MH0.r_z0eYczkO4DfElyU0eVK4CFXQx7r_EmwCepQKhMUQM';
-let sb = supabase.createClient(SUPA_URL, SUPA_KEY);
-let sbReady = true;
-let qrBase64 = localStorage.getItem('pay_qr') || '';
+
+let sb = null;
+let qrBase64 = '';
 let activeBillId = null;
 let notifOpen = false;
-let sbVisible = true;
+let sbVisible2 = true;
 
-function initSupa() {
-  document.getElementById('configBanner').style.display = 'none';
-  // Real-time notifications
-  sb.channel('notifications')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, handleNewNotif)
-    .subscribe();
-  return true;
+// ── In-memory cache ──────────────────────────────────────────
+const cache = {
+  tenants: null,          // { data, ts }
+  bills: {},              // key → { data, ts }
+  payments: null,
+  notifications: null,
+  TTL: 30_000,            // 30s
+  get(store, key = 'default') {
+    const entry = store === 'tenants'        ? this.tenants
+                : store === 'payments'       ? this.payments
+                : store === 'notifications'  ? this.notifications
+                : this.bills[key];
+    if (!entry) return null;
+    if (Date.now() - entry.ts > this.TTL) return null;
+    return entry.data;
+  },
+  set(store, data, key = 'default') {
+    const entry = { data, ts: Date.now() };
+    if (store === 'tenants')       this.tenants       = entry;
+    else if (store === 'payments') this.payments       = entry;
+    else if (store === 'notifications') this.notifications = entry;
+    else this.bills[key] = entry;
+  },
+  invalidate(...stores) {
+    stores.forEach(s => {
+      if (s === 'tenants')       this.tenants = null;
+      else if (s === 'payments') this.payments = null;
+      else if (s === 'notifications') this.notifications = null;
+      else this.bills = {};
+    });
+  }
+};
+
+// ── Helpers ──────────────────────────────────────────────────
+const gv  = id => parseFloat(document.getElementById(id).value) || 0;
+const fmt = n  => (parseFloat(n)||0).toLocaleString('th-TH', { minimumFractionDigits: 2 });
+const esc = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+const MSHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+// Read localStorage once
+const _ls = {
+  paySettings: null,
+  dormSettings: null,
+  rentMap: null,
+  getPaySettings()  { return this.paySettings  ??= JSON.parse(localStorage.getItem('pay_settings')  || '{}'); },
+  getDormSettings() { return this.dormSettings ??= JSON.parse(localStorage.getItem('dorm_settings') || '{}'); },
+  getRentMap()      { return this.rentMap      ??= JSON.parse(localStorage.getItem('rent_map')       || '{}'); },
+  savePaySettings(v)  { this.paySettings  = v; localStorage.setItem('pay_settings',  JSON.stringify(v)); },
+  saveDormSettings(v) { this.dormSettings = v; localStorage.setItem('dorm_settings', JSON.stringify(v)); },
+  saveRentMap(v)      { this.rentMap      = v; localStorage.setItem('rent_map',       JSON.stringify(v)); },
+};
+
+// ── Status pill ──────────────────────────────────────────────
+function statusPill(s) {
+  const map = {
+    pending:   ['pill-pending',   '⏳ รอชำระ'],
+    partial:   ['pill-partial',   '💧 ชำระบางส่วน'],
+    paid:      ['pill-paid',      '📤 รอยืนยัน'],
+    confirmed: ['pill-confirmed', '✅ ยืนยันแล้ว']
+  };
+  const [cls, txt] = map[s] || ['pill-pending', s];
+  return `<span class="pill ${cls}">${txt}</span>`;
 }
 
-// ============================================================
-// INIT
-// ============================================================
-(function() {
-  initSupa();
-  loadPaySettings();
-  loadDashboard();
-  loadNotifications();
-  loadDormSettings();
-})();
-
-function saveSettings() {
-  showStatus('conn-status', '✅ เชื่อมต่อสำเร็จ! (credentials ถูก hardcode ไว้แล้ว)', 'ok');
-}
-
-function showStatus(id, msg, type) {
-  const el = document.getElementById(id);
-  const colors = { ok: 'var(--ok)', warn: 'var(--elec)', danger: 'var(--danger)' };
-  el.style.color = colors[type] || 'var(--muted)';
-  el.textContent = msg;
-}
-
-function showAlert(msg, type='warn') {
+// ── Alert ────────────────────────────────────────────────────
+function showAlert(msg, type = 'warn') {
   let el = document.getElementById('globalAlert');
   if (!el) {
     el = document.createElement('div');
@@ -676,61 +580,64 @@ function showAlert(msg, type='warn') {
     document.body.appendChild(el);
   }
   const styles = {
-    warn:    'background:#1a2540;border:1px solid rgba(251,191,36,.5);color:#fbbf24;',
-    danger:  'background:#1a2540;border:1px solid rgba(248,113,113,.5);color:#f87171;',
-    ok:      'background:#1a2540;border:1px solid rgba(52,211,153,.5);color:#34d399;',
+    warn:   'background:#1a2540;border:1px solid rgba(251,191,36,.5);color:#fbbf24;',
+    danger: 'background:#1a2540;border:1px solid rgba(248,113,113,.5);color:#f87171;',
+    ok:     'background:#1a2540;border:1px solid rgba(52,211,153,.5);color:#34d399;',
   };
+  Object.assign(el.style, { opacity: '1', display: 'block' });
   el.style.cssText += styles[type] || styles.warn;
   el.textContent = msg;
-  el.style.opacity = '1';
-  el.style.display = 'block';
   clearTimeout(el._t);
-  el._t = setTimeout(() => { el.style.opacity='0'; setTimeout(()=>el.style.display='none',300); }, 3000);
+  el._t = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.style.display = 'none', 300); }, 3000);
+}
+
+// ============================================================
+// INIT — wait for Supabase script
+// ============================================================
+function boot() {
+  sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+  // Realtime: only listen for notifications (lightweight)
+  sb.channel('notif-ch')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, handleNewNotif)
+    .subscribe();
+
+  // Load settings from localStorage (sync, instant)
+  loadPaySettings();
+  loadDormSettings();
+
+  // Kick off initial data loads in parallel
+  Promise.all([loadDashboard(), loadNotifications()]);
+}
+
+// Wait for defer'd script
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => setTimeout(boot, 0));
+} else {
+  setTimeout(boot, 0);
 }
 
 // ============================================================
 // NAVIGATION
 // ============================================================
-function initCreateBill() {
-  const now = new Date();
-  const m = document.getElementById('cb-month');
-  if (m) m.value = now.getMonth() + 1;
-  const y = document.getElementById('cb-year');
-  if (y) {
-    y.innerHTML = '';
-    const curY = now.getFullYear() + 543;
-    for (let yr = curY + 1; yr >= curY - 5; yr--) {
-      const o = new Option('พ.ศ. ' + yr, yr);
-      if (yr === curY) o.selected = true;
-      y.appendChild(o);
-    }
-  }
-  // Reload tenant dropdown every time page opens
-  loadTenantDropdown();
-  loadDormSettings();
-}
-
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
-  const nb = document.getElementById('nav-' + id);
-  if (nb) nb.classList.add('active');
-  if (id === 'dashboard') loadDashboard();
-  if (id === 'bills') loadBills();
-  if (id === 'payments') loadPayments();
-  if (id === 'tenants') loadTenants();
+  document.getElementById('nav-' + id)?.classList.add('active');
+  if (id === 'dashboard')   loadDashboard();
+  if (id === 'bills')       loadBills();
+  if (id === 'payments')    loadPayments();
+  if (id === 'tenants')     loadTenants();
   if (id === 'create-bill') initCreateBill();
-  if (id === 'summary') initSummary();
+  if (id === 'summary')     initSummary();
   if (window.innerWidth <= 700) closeMobile();
 }
 
-let sbVisible2 = true;
 function toggleSB() {
   if (window.innerWidth <= 700) {
-    const sb = document.getElementById('sidebar');
-    const show = !sb.classList.contains('mobile-open');
-    sb.classList.toggle('mobile-open', show);
+    const show = !document.getElementById('sidebar').classList.contains('mobile-open');
+    document.getElementById('sidebar').classList.toggle('mobile-open', show);
     document.getElementById('mBackdrop').style.display = show ? 'block' : 'none';
   } else {
     sbVisible2 = !sbVisible2;
@@ -743,36 +650,43 @@ function closeMobile() {
   document.getElementById('sidebar').classList.remove('mobile-open');
   document.getElementById('mBackdrop').style.display = 'none';
 }
-
 function toggleNotif() {
   notifOpen = !notifOpen;
   document.getElementById('notifPanel').classList.toggle('open', notifOpen);
   if (notifOpen) loadNotifications();
 }
-
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 function openModal(id)  { document.getElementById(id).classList.add('show'); }
 
 // ============================================================
-// MONTH/YEAR
+// CREATE BILL — init
 // ============================================================
-const MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
-  'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-const MSHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function initCreateBill() {
+  const now  = new Date();
+  const mSel = document.getElementById('cb-month');
+  if (mSel) mSel.value = now.getMonth() + 1;
+  const ySel = document.getElementById('cb-year');
+  if (ySel && ySel.options.length === 0) {
+    const curY = now.getFullYear() + 543;
+    for (let yr = curY + 1; yr >= curY - 5; yr--) {
+      const o = new Option('พ.ศ. ' + yr, yr);
+      if (yr === curY) o.selected = true;
+      ySel.appendChild(o);
+    }
+  }
+  loadTenantDropdown();
+  loadDormSettings();
+}
 
 function getMonthLabel() {
   const m = parseInt(document.getElementById('cb-month').value);
   const y = document.getElementById('cb-year').value;
-  return `${MSHORT[m-1]} ${y}`;
+  return `${MSHORT[m - 1]} ${y}`;
 }
 
 // ============================================================
 // CALC
 // ============================================================
-function gv(id) { return parseFloat(document.getElementById(id).value) || 0; }
-function fmt(n) { return (parseFloat(n)||0).toLocaleString('th-TH', { minimumFractionDigits: 2 }); }
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
 function calcWater() {
   const u = Math.max(0, gv('cb-wcurr') - gv('cb-wprev'));
   const t = u * gv('cb-wrate');
@@ -787,40 +701,41 @@ function calcElec() {
   document.getElementById('cb-etotal').textContent = fmt(t) + ' บาท';
   updateGrand();
 }
-function getWater() { return Math.max(0, gv('cb-wcurr') - gv('cb-wprev')) * gv('cb-wrate'); }
-function getElec()  { return Math.max(0, gv('cb-ecurr') - gv('cb-eprev')) * gv('cb-erate'); }
+const getWater = () => Math.max(0, gv('cb-wcurr') - gv('cb-wprev')) * gv('cb-wrate');
+const getElec  = () => Math.max(0, gv('cb-ecurr') - gv('cb-eprev')) * gv('cb-erate');
+
 function updateGrand() {
   const r = gv('cb-rent'), w = getWater(), e = getElec(), f = gv('cb-fine');
   document.getElementById('s-rent').textContent  = fmt(r) + ' บาท';
   document.getElementById('s-water').textContent = fmt(w) + ' บาท';
   document.getElementById('s-elec').textContent  = fmt(e) + ' บาท';
   document.getElementById('s-fine').textContent  = fmt(f) + ' บาท';
-  document.getElementById('s-grand').textContent = fmt(r+w+e+f) + ' บาท';
+  document.getElementById('s-grand').textContent = fmt(r + w + e + f) + ' บาท';
 }
 
 // ============================================================
-// PAYMENT SETTINGS
+// SETTINGS (localStorage only, sync)
 // ============================================================
 function loadPaySettings() {
-  const s = JSON.parse(localStorage.getItem('pay_settings') || '{}');
+  const s = _ls.getPaySettings();
   if (s.bank) document.getElementById('pay-bank').value = s.bank;
   if (s.num)  document.getElementById('pay-num').value  = s.num;
   if (s.name) document.getElementById('pay-name').value = s.name;
-  if (qrBase64) showQrPrev(qrBase64);
+  // Lazy-load QR preview (avoid blocking init)
+  requestIdleCallback(() => {
+    qrBase64 = localStorage.getItem('pay_qr') || '';
+    if (qrBase64) showQrPrev(qrBase64);
+  }, { timeout: 1000 });
 }
-
-function saveDormSettings() {
-  localStorage.setItem('dorm_settings', JSON.stringify({
-    name:    document.getElementById('dorm-name').value.trim(),
-    address: document.getElementById('dorm-address').value.trim(),
-    phone:   document.getElementById('dorm-phone').value.trim(),
-    owner:   document.getElementById('dorm-owner').value.trim(),
-    signer:  document.getElementById('dorm-signer').value.trim()
-  }));
+function savePaySettings() {
+  _ls.savePaySettings({
+    bank: document.getElementById('pay-bank').value.trim(),
+    num:  document.getElementById('pay-num').value.trim(),
+    name: document.getElementById('pay-name').value.trim()
+  });
 }
-
 function loadDormSettings() {
-  const d = JSON.parse(localStorage.getItem('dorm_settings') || '{}');
+  const d = _ls.getDormSettings();
   if (d.name)    document.getElementById('dorm-name').value    = d.name;
   if (d.address) document.getElementById('dorm-address').value = d.address;
   if (d.phone)   document.getElementById('dorm-phone').value   = d.phone;
@@ -828,16 +743,25 @@ function loadDormSettings() {
   const s = document.getElementById('dorm-signer');
   if (s && d.signer) s.value = d.signer;
 }
-function savePaySettings() {
-  localStorage.setItem('pay_settings', JSON.stringify({
-    bank: document.getElementById('pay-bank').value.trim(),
-    num:  document.getElementById('pay-num').value.trim(),
-    name: document.getElementById('pay-name').value.trim()
-  }));
+
+// Debounced save
+let _dormTimer;
+function saveDormSettings() {
+  clearTimeout(_dormTimer);
+  _dormTimer = setTimeout(() => {
+    _ls.saveDormSettings({
+      name:    document.getElementById('dorm-name').value.trim(),
+      address: document.getElementById('dorm-address').value.trim(),
+      phone:   document.getElementById('dorm-phone').value.trim(),
+      owner:   document.getElementById('dorm-owner').value.trim(),
+      signer:  document.getElementById('dorm-signer').value.trim()
+    });
+  }, 400);
 }
+
 function handleQrUpload(e) {
   const f = e.target.files[0]; if (!f) return;
-  if (f.size > 2*1024*1024) { alert('รูปใหญ่เกิน 2MB'); return; }
+  if (f.size > 2 * 1024 * 1024) { showAlert('รูปใหญ่เกิน 2MB', 'warn'); return; }
   const r = new FileReader();
   r.onload = ev => { qrBase64 = ev.target.result; localStorage.setItem('pay_qr', qrBase64); showQrPrev(qrBase64); };
   r.readAsDataURL(f);
@@ -860,36 +784,44 @@ function delQr(e) {
 // ============================================================
 // TENANTS
 // ============================================================
+async function fetchTenants(force = false) {
+  if (!force) {
+    const cached = cache.get('tenants');
+    if (cached) return cached;
+  }
+  const { data } = await sb.from('tenants')
+    .select('id,name,room,phone,id_card,address,created_at')
+    .order('room');
+  cache.set('tenants', data || []);
+  return data || [];
+}
+
 async function loadTenantDropdown() {
-  if (!sbReady) return;
-  const { data } = await sb.from('tenants').select('*').order('room');
-  const sel = document.getElementById('cb-tenant');
+  const data = await fetchTenants();
+  const sel  = document.getElementById('cb-tenant');
+  const prev = sel.value;
   sel.innerHTML = '<option value="">— เลือกผู้เช่า —</option>';
-  (data || []).forEach(t => {
+  data.forEach(t => {
     const o = new Option(`ห้อง ${t.room} — ${t.name}`, t.id);
     o.dataset.json = JSON.stringify(t);
     sel.appendChild(o);
   });
+  if (prev) sel.value = prev;
 }
 
 function onTenantSelect() {
   const sel = document.getElementById('cb-tenant');
   const opt = sel.options[sel.selectedIndex];
-  if (!opt.dataset.json) return;
+  if (!opt?.dataset.json) return;
   const t = JSON.parse(opt.dataset.json);
-  // Load saved rent for this tenant
-  const rentMap = JSON.parse(localStorage.getItem('rent_map') || '{}');
-  if (rentMap[t.id]) {
-    document.getElementById('cb-rent').value = rentMap[t.id];
-    updateGrand();
-  }
+  const rentMap = _ls.getRentMap();
+  if (rentMap[t.id]) { document.getElementById('cb-rent').value = rentMap[t.id]; updateGrand(); }
 }
 
 async function loadTenants() {
-  if (!sbReady) return;
-  const { data } = await sb.from('tenants').select('*').order('room');
+  const data  = await fetchTenants();
   const tbody = document.getElementById('tenantsTable');
-  if (!data || !data.length) {
+  if (!data.length) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">ยังไม่มีผู้เช่า</td></tr>';
     return;
   }
@@ -910,7 +842,6 @@ async function loadTenants() {
 function openAddTenant() { openModal('addTenantOverlay'); }
 
 async function saveTenant() {
-  if (!sbReady) { alert('ยังไม่ได้ตั้งค่า Supabase'); return; }
   const name    = document.getElementById('nt-name').value.trim();
   const room    = document.getElementById('nt-room').value.trim().toUpperCase();
   const phone   = document.getElementById('nt-phone').value.trim();
@@ -919,6 +850,7 @@ async function saveTenant() {
   if (!name || !room || !phone || !id_card) { showAlert('กรุณากรอกให้ครบ: ชื่อ / ห้อง / เบอร์ / เลขบัตร'); return; }
   const { error } = await sb.from('tenants').insert({ name, room, phone, id_card, address });
   if (error) { showAlert('เกิดข้อผิดพลาด: ' + error.message, 'danger'); return; }
+  cache.invalidate('tenants');
   closeModal('addTenantOverlay');
   ['nt-name','nt-room','nt-phone','nt-idcard','nt-address'].forEach(id => document.getElementById(id).value = '');
   loadTenants(); loadTenantDropdown();
@@ -927,20 +859,20 @@ async function saveTenant() {
 async function deleteTenant(id) {
   if (!confirm('ลบผู้เช่านี้? ข้อมูลบิลที่เกี่ยวข้องจะหายด้วย')) return;
   await sb.from('tenants').delete().eq('id', id);
+  cache.invalidate('tenants');
   loadTenants(); loadTenantDropdown();
 }
 
-// ============================================================
-// TENANT DETAIL
-// ============================================================
 async function openTenantDetail(tenantId) {
-  const { data: t } = await sb.from('tenants').select('*').eq('id', tenantId).single();
+  // Use cached tenants list first
+  const tenants = cache.get('tenants') || [];
+  const t = tenants.find(x => x.id === tenantId)
+         || (await sb.from('tenants').select('*').eq('id', tenantId).single()).data;
   if (!t) return;
 
   document.getElementById('td-title').textContent = t.name;
-  document.getElementById('td-sub').textContent = 'ห้อง ' + t.room;
-
-  document.getElementById('td-body').innerHTML = `
+  document.getElementById('td-sub').textContent   = 'ห้อง ' + t.room;
+  document.getElementById('td-body').innerHTML    = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">
       <div style="background:var(--surf2);border-radius:10px;padding:12px">
         <div style="font-size:11px;color:var(--muted);margin-bottom:3px">ห้อง</div>
@@ -962,21 +894,21 @@ async function openTenantDetail(tenantId) {
     <div style="background:var(--surf2);border-radius:10px;padding:12px">
       <div style="font-size:11px;color:var(--muted);margin-bottom:3px">เพิ่มเมื่อ</div>
       <div style="font-size:13px">${new Date(t.created_at).toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}</div>
-    </div>
-  `;
+    </div>`;
 
-  // Load recent bills
-  const { data: bills } = await sb.from('bills').select('*')
-    .eq('tenant_id', tenantId).order('issued_at',{ascending:false}).limit(5);
+  // Load recent bills — select only needed columns, no payment_qr
+  const { data: bills } = await sb.from('bills')
+    .select('id,month_label,total,status,issued_at')
+    .eq('tenant_id', tenantId)
+    .order('issued_at', { ascending: false })
+    .limit(5);
 
   const tdBills = document.getElementById('td-bills');
-  if (!bills?.length) {
-    tdBills.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:14px">ยังไม่มีบิล</div>';
-  } else {
-    tdBills.innerHTML = bills.map(b => `
+  tdBills.innerHTML = !bills?.length
+    ? '<div style="color:var(--muted);font-size:13px;text-align:center;padding:14px">ยังไม่มีบิล</div>'
+    : bills.map(b => `
       <div style="display:flex;justify-content:space-between;align-items:center;
-        padding:10px 12px;background:var(--surf2);border:1px solid var(--border);
-        border-radius:10px;margin-bottom:6px;cursor:pointer"
+        padding:10px 12px;background:var(--surf2);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer"
         onclick="closeModal('tenantDetailOverlay');openBillDetail('${b.id}')">
         <div>
           <div style="font-size:13px;font-weight:600">${esc(b.month_label)}</div>
@@ -986,11 +918,8 @@ async function openTenantDetail(tenantId) {
           <span style="font-family:'Prompt',sans-serif;font-weight:700">${fmt(b.total)} บาท</span>
           ${statusPill(b.status)}
         </div>
-      </div>
-    `).join('');
-  }
+      </div>`).join('');
 
-  // Set delete button
   document.getElementById('td-delete-btn').onclick = () => deleteTenant(tenantId);
   openModal('tenantDetailOverlay');
 }
@@ -999,25 +928,23 @@ async function openTenantDetail(tenantId) {
 // BILLS
 // ============================================================
 async function submitBill() {
-  if (!sbReady) { alert('ยังไม่ได้ตั้งค่า Supabase'); return; }
   const tenantId = document.getElementById('cb-tenant').value;
   if (!tenantId) { showAlert('กรุณาเลือกผู้เช่า', 'warn'); return; }
-
   const r = gv('cb-rent'), w = getWater(), e = getElec(), f = gv('cb-fine');
-  if (r <= 0 && w <= 0 && e <= 0) {
-    showAlert('กรุณากรอกค่าห้อง หรือค่าน้ำ หรือค่าไฟอย่างน้อย 1 รายการ', 'warn'); return;
-  }
+  if (r <= 0 && w <= 0 && e <= 0) { showAlert('กรุณากรอกค่าห้อง หรือค่าน้ำ หรือค่าไฟอย่างน้อย 1 รายการ', 'warn'); return; }
+
   const sel = document.getElementById('cb-tenant');
   const t   = JSON.parse(sel.options[sel.selectedIndex].dataset.json);
-  const pay = JSON.parse(localStorage.getItem('pay_settings') || '{}');
-  const wU = Math.max(0, gv('cb-wcurr') - gv('cb-wprev'));
-  const eU = Math.max(0, gv('cb-ecurr') - gv('cb-eprev'));
-  // Save rent for this tenant
+  const pay = _ls.getPaySettings();
+  const wU  = Math.max(0, gv('cb-wcurr') - gv('cb-wprev'));
+  const eU  = Math.max(0, gv('cb-ecurr') - gv('cb-eprev'));
+
   if (r > 0) {
-    const rentMap = JSON.parse(localStorage.getItem('rent_map') || '{}');
-    rentMap[tenantId] = r;
-    localStorage.setItem('rent_map', JSON.stringify(rentMap));
+    const rm = _ls.getRentMap();
+    rm[tenantId] = r;
+    _ls.saveRentMap(rm);
   }
+
   const bill = {
     tenant_id: tenantId, room: t.room, tenant_name: t.name,
     month_label: getMonthLabel(),
@@ -1028,58 +955,79 @@ async function submitBill() {
     payment_qr: qrBase64,
     bank_name: pay.bank || '', bank_number: pay.num || '', bank_account_name: pay.name || ''
   };
+
   const { error } = await sb.from('bills').insert(bill);
   if (error) { showAlert('เกิดข้อผิดพลาด: ' + error.message, 'danger'); return; }
-  showAlert(`✅ สร้างบิลสำเร็จ!\nห้อง ${t.room} — ${t.name}\nยอด ${fmt(r+w+e+f)} บาท`);
+
+  cache.invalidate('bills', 'payments');
+  showAlert(`✅ สร้างบิลสำเร็จ! ห้อง ${t.room} — ${t.name} ยอด ${fmt(r+w+e+f)} บาท`, 'ok');
   showPage('bills');
 }
 
 async function loadBills() {
-  if (!sbReady) return;
-  const status = document.getElementById('filterStatus')?.value || '';
-  let q = sb.from('bills').select('*').order('issued_at', { ascending: false });
-  if (status) q = q.eq('status', status);
-  const { data } = await q;
+  const status   = document.getElementById('filterStatus')?.value || '';
+  const cacheKey = 'bills_' + status;
+  const cached   = cache.get('bills', cacheKey);
+
+  if (cached) {
+    renderBillsTable(cached);
+    return;
+  }
+
+  // Show skeleton
   const tbody = document.getElementById('billsTable');
-  if (!data || !data.length) {
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">กำลังโหลด...</td></tr>';
+
+  // Only select columns needed for table — skip payment_qr (huge base64)
+  let q = sb.from('bills')
+    .select('id,room,tenant_name,month_label,total,status')
+    .order('issued_at', { ascending: false });
+  if (status) q = q.eq('status', status);
+
+  const { data } = await q;
+  // Sort by room name (ASCII order)
+  const rows = (data || []).sort((a, b) => a.room.localeCompare(b.room, undefined, { numeric: true, sensitivity: 'base' }));
+  cache.set('bills', rows, cacheKey);
+  renderBillsTable(rows);
+}
+
+function renderBillsTable(data) {
+  const tbody = document.getElementById('billsTable');
+  if (!data.length) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">ไม่พบบิล</td></tr>';
     return;
   }
-  tbody.innerHTML = data.map(b => `
-    <tr>
+  // Build HTML string in one pass
+  const parts = [];
+  for (const b of data) {
+    parts.push(`<tr>
       <td><strong style="color:var(--water)">ห้อง ${esc(b.room)}</strong></td>
       <td>${esc(b.tenant_name)}</td>
       <td>${esc(b.month_label)}</td>
       <td style="font-family:'Prompt',sans-serif;font-weight:700">${fmt(b.total)} บาท</td>
       <td>${statusPill(b.status)}</td>
       <td><button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openBillDetail('${b.id}')">🔍 ดู</button></td>
-    </tr>
-  `).join('');
-}
-
-function statusPill(s) {
-  const map = {
-    pending:   ['pill-pending', '⏳ รอชำระ'],
-    partial:   ['pill-partial', '💧 ชำระบางส่วน'],
-    paid:      ['pill-paid',    '📤 รอยืนยัน'],
-    confirmed: ['pill-confirmed','✅ ยืนยันแล้ว']
-  };
-  const [cls, txt] = map[s] || ['pill-pending', s];
-  return `<span class="pill ${cls}">${txt}</span>`;
+    </tr>`);
+  }
+  tbody.innerHTML = parts.join('');
 }
 
 async function openBillDetail(billId) {
-  if (!sbReady) return;
   activeBillId = billId;
-  const { data: b } = await sb.from('bills').select('*').eq('id', billId).single();
-  const { data: pays } = await sb.from('payments').select('*').eq('bill_id', billId).order('paid_at');
-  const paidTotal = (pays||[]).filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
+
+  // Fetch bill & payments in parallel — bill excludes payment_qr in list view but need it here
+  const [{ data: b }, { data: pays }] = await Promise.all([
+    sb.from('bills').select('*').eq('id', billId).single(),
+    sb.from('payments').select('*').eq('bill_id', billId).order('paid_at')
+  ]);
+
+  const paidTotal = (pays||[]).filter(p => p.status === 'verified').reduce((s, p) => s + (p.amount||0), 0);
   const remaining = (b.total||0) - paidTotal;
 
   document.getElementById('bd-title').textContent = `ห้อง ${b.room} — ${b.tenant_name}`;
-  document.getElementById('bd-sub').textContent = `เดือน ${b.month_label} | ${statusPill(b.status).replace(/<[^>]+>/g,'')}`;
+  document.getElementById('bd-sub').textContent   = `เดือน ${b.month_label}`;
 
-  let html = `
+  const parts = [`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
       <div style="background:var(--surf2);border-radius:10px;padding:12px">
         <div style="font-size:11px;color:var(--muted)">ยอดรวม</div>
@@ -1091,47 +1039,41 @@ async function openBillDetail(billId) {
       </div>
     </div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:700">รายการ</div>
-    ${b.rent>0?`<div class="sum-row"><span style="color:var(--muted)">🏠 ค่าห้อง</span><span style="color:var(--rent);font-weight:700">${fmt(b.rent)} บาท</span></div>`:''}
-    ${(b.water>0||b.water_units>0)?`<div class="sum-row"><span style="color:var(--muted)">💧 ค่าน้ำ (${b.water_units} หน่วย)</span><span style="color:var(--water);font-weight:700">${fmt(b.water)} บาท</span></div>`:''}
-    ${(b.elec>0||b.elec_units>0)?`<div class="sum-row"><span style="color:var(--muted)">⚡ ค่าไฟ (${b.elec_units} หน่วย)</span><span style="color:var(--elec);font-weight:700">${fmt(b.elec)} บาท</span></div>`:''}
-    ${b.fine>0?`<div class="sum-row"><span style="color:var(--muted)">⚠️ ค่าปรับ${b.fine_reason?' ('+esc(b.fine_reason)+')':''}</span><span style="color:var(--danger);font-weight:700">${fmt(b.fine)} บาท</span></div>`:''}
-  `;
+    ${b.rent>0  ? `<div class="sum-row"><span style="color:var(--muted)">🏠 ค่าห้อง</span><span style="color:var(--rent);font-weight:700">${fmt(b.rent)} บาท</span></div>` : ''}
+    ${(b.water>0||b.water_units>0) ? `<div class="sum-row"><span style="color:var(--muted)">💧 ค่าน้ำ (${b.water_units} หน่วย)</span><span style="color:var(--water);font-weight:700">${fmt(b.water)} บาท</span></div>` : ''}
+    ${(b.elec>0||b.elec_units>0)  ? `<div class="sum-row"><span style="color:var(--muted)">⚡ ค่าไฟ (${b.elec_units} หน่วย)</span><span style="color:var(--elec);font-weight:700">${fmt(b.elec)} บาท</span></div>` : ''}
+    ${b.fine>0  ? `<div class="sum-row"><span style="color:var(--muted)">⚠️ ค่าปรับ${b.fine_reason?' ('+esc(b.fine_reason)+')':''}</span><span style="color:var(--danger);font-weight:700">${fmt(b.fine)} บาท</span></div>` : ''}
+  `];
 
-  if (pays && pays.length) {
-    html += `<div style="font-size:12px;color:var(--muted);margin:14px 0 8px;font-weight:700">หลักฐานการชำระ (${pays.length} รายการ)</div>`;
-    pays.forEach(p => {
-      html += `<div class="pay-item">
+  if (pays?.length) {
+    parts.push(`<div style="font-size:12px;color:var(--muted);margin:14px 0 8px;font-weight:700">หลักฐานการชำระ (${pays.length} รายการ)</div>`);
+    for (const p of pays) {
+      parts.push(`<div class="pay-item">
         <div class="pay-header">
           <div>
             <div style="font-weight:700">${fmt(p.amount)} บาท</div>
             <div style="font-size:11px;color:var(--muted)">${new Date(p.paid_at).toLocaleString('th-TH')}</div>
-            ${p.note?`<div style="font-size:12px;color:var(--muted)">${esc(p.note)}</div>`:''}
+            ${p.note ? `<div style="font-size:12px;color:var(--muted)">${esc(p.note)}</div>` : ''}
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <span class="pill ${p.status==='verified'?'pill-confirmed':p.status==='rejected'?'pill-rejected':'pill-verify'}">${p.status==='verified'?'✅ ยืนยันแล้ว':p.status==='rejected'?'❌ ปฏิเสธ':'🔍 รอตรวจ'}</span>
-            ${p.status==='pending_verify'?`<button class="btn btn-primary" style="padding:4px 10px;font-size:11px" onclick="openVerifyModal('${p.id}','${billId}',${p.amount})">🔍 ตรวจสอบ</button>`:''}
-            ${p.status==='verified'?`<button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="verifyPayment('${p.id}','${billId}',false,0)">ยกเลิก</button>`:''}
+            ${p.status==='pending_verify' ? `<button class="btn btn-primary" style="padding:4px 10px;font-size:11px" onclick="openVerifyModal('${p.id}','${billId}',${p.amount})">🔍 ตรวจสอบ</button>` : ''}
+            ${p.status==='verified'       ? `<button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="verifyPayment('${p.id}','${billId}',false,0)">ยกเลิก</button>` : ''}
           </div>
         </div>
-        ${p.slip_url?`<img src="${p.slip_url}" class="slip-img" style="max-height:200px;object-fit:contain">`:''}
-      </div>`;
-    });
+        ${p.slip_url ? `<img src="${p.slip_url}" class="slip-img" style="max-height:200px;object-fit:contain" loading="lazy">` : ''}
+      </div>`);
+    }
   }
 
-  document.getElementById('bd-body').innerHTML = html;
-  const canConfirm = b.status === 'paid' || (pays && pays.some(p => p.status === 'pending_verify'));
-
+  document.getElementById('bd-body').innerHTML = parts.join('');
   openModal('billDetailOverlay');
 }
 
-let activeVerifyPayId = null;
-let activeVerifyBillId = null;
-let activeVerifyClaimedAmt = 0;
+let activeVerifyPayId = null, activeVerifyBillId = null, activeVerifyClaimedAmt = 0;
 
 function openVerifyModal(payId, billId, claimedAmt) {
-  activeVerifyPayId = payId;
-  activeVerifyBillId = billId;
-  activeVerifyClaimedAmt = claimedAmt;
+  activeVerifyPayId = payId; activeVerifyBillId = billId; activeVerifyClaimedAmt = claimedAmt;
   document.getElementById('vr-claimed').textContent = fmt(claimedAmt);
   document.getElementById('vr-amount').value = claimedAmt;
   openModal('verifyOverlay');
@@ -1144,172 +1086,183 @@ async function doVerify(approve) {
     await sb.from('payments').update({ status: 'rejected', verified_at: new Date().toISOString() }).eq('id', activeVerifyPayId);
   } else {
     const confirmedAmt = parseFloat(document.getElementById('vr-amount').value);
-    if (!confirmedAmt || confirmedAmt <= 0) { alert('กรุณากรอกจำนวนเงิน'); return; }
+    if (!confirmedAmt || confirmedAmt <= 0) { showAlert('กรุณากรอกจำนวนเงิน', 'warn'); return; }
     await sb.from('payments').update({ status: 'verified', amount: confirmedAmt, verified_at: new Date().toISOString() }).eq('id', activeVerifyPayId);
   }
-  // Recalc bill status
-  const { data: pays } = await sb.from('payments').select('*').eq('bill_id', activeVerifyBillId);
-  const { data: bill } = await sb.from('bills').select('total').eq('id', activeVerifyBillId).single();
-  const paidTotal = pays.filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
-  const hasPending = pays.some(p=>p.status==='pending_verify');
-  let newStatus = 'pending';
-  if (hasPending) newStatus = 'paid';
-  else if (paidTotal >= bill.total) newStatus = 'paid';
-  else if (paidTotal > 0) newStatus = 'partial';
-  await sb.from('bills').update({ status: newStatus }).eq('id', activeVerifyBillId);
+  await recalcBillStatus(activeVerifyBillId);
+  cache.invalidate('bills', 'payments');
   closeModal('verifyOverlay');
+  // Refresh dashboard in background so room card updates colour immediately
+  loadDashboard();
   openBillDetail(activeVerifyBillId);
   loadPayments();
 }
 
-async function verifyPayment(payId, billId, approve, amount) {
-  await sb.from('payments').update({ status: approve?'verified':'rejected', verified_at: new Date().toISOString() }).eq('id', payId);
-  const { data: pays } = await sb.from('payments').select('*').eq('bill_id', billId);
-  const { data: bill } = await sb.from('bills').select('total').eq('id', billId).single();
-  const paidTotal = pays.filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
-  const stillPending = pays.some(p=>p.status==='pending_verify');
-  let newStatus = 'pending';
-  if (stillPending) newStatus = 'paid';
-  else if (paidTotal >= bill.total) newStatus = 'paid';
-  else if (paidTotal > 0) newStatus = 'partial';
-  await sb.from('bills').update({ status: newStatus }).eq('id', billId);
+async function verifyPayment(payId, billId, approve) {
+  await sb.from('payments').update({ status: approve ? 'verified' : 'rejected', verified_at: new Date().toISOString() }).eq('id', payId);
+  await recalcBillStatus(billId);
+  cache.invalidate('bills', 'payments');
+  loadDashboard();
   openBillDetail(billId);
 }
 
-async function confirmBill() {
-  if (!activeBillId) return;
-  await sb.from('bills').update({ status: 'confirmed', confirmed_at: new Date().toISOString() }).eq('id', activeBillId);
-  closeModal('billDetailOverlay');
-  loadBills(); loadDashboard();
+// Shared helper — avoids duplicated query logic
+async function recalcBillStatus(billId) {
+  const [{ data: pays }, { data: bill }] = await Promise.all([
+    sb.from('payments').select('status,amount').eq('bill_id', billId),
+    sb.from('bills').select('total').eq('id', billId).single()
+  ]);
+  const paidTotal  = (pays||[]).filter(p => p.status === 'verified').reduce((s, p) => s + (p.amount||0), 0);
+  const hasPending = (pays||[]).some(p => p.status === 'pending_verify');
+  let newStatus = 'pending';
+  if (hasPending)              newStatus = 'paid';
+  else if (paidTotal >= bill.total) newStatus = 'paid';
+  else if (paidTotal > 0)      newStatus = 'partial';
+  await sb.from('bills').update({ status: newStatus }).eq('id', billId);
 }
 
 // ============================================================
 // PAYMENTS LIST
 // ============================================================
 async function loadPayments() {
-  if (!sbReady) return;
-  const { data } = await sb.from('payments').select('*, bills(room, tenant_name, month_label)')
+  const cached = cache.get('payments');
+  if (cached) { renderPayments(cached); return; }
+
+  const { data } = await sb.from('payments')
+    .select('id,bill_id,amount,status,paid_at,note,slip_url,bills(room,tenant_name,month_label)')
     .order('paid_at', { ascending: false });
-  const el = document.getElementById('paymentsList');
-  if (!data || !data.length) {
+
+  const rows = data || [];
+  cache.set('payments', rows);
+  renderPayments(rows);
+}
+
+function renderPayments(data) {
+  const el      = document.getElementById('paymentsList');
+  const pending = data.filter(p => p.status === 'pending_verify');
+  const badge   = document.getElementById('payBadge');
+  badge.textContent  = pending.length;
+  badge.style.display = pending.length ? 'inline' : 'none';
+
+  if (!data.length) {
     el.innerHTML = '<div class="empty"><div class="eico">💸</div><p>ยังไม่มีการชำระเงิน</p></div>';
     return;
   }
-  const pending = data.filter(p => p.status === 'pending_verify');
-  document.getElementById('payBadge').textContent = pending.length;
-  document.getElementById('payBadge').style.display = pending.length ? 'inline' : 'none';
 
-  el.innerHTML = data.map(p => `
-    <div class="pay-item">
+  const parts = [];
+  for (const p of data) {
+    parts.push(`<div class="pay-item">
       <div class="pay-header">
         <div>
           <div style="font-weight:700;font-size:15px">${fmt(p.amount)} บาท</div>
           <div style="font-size:12px;color:var(--water)">ห้อง ${esc(p.bills?.room)} — ${esc(p.bills?.tenant_name)} | ${esc(p.bills?.month_label)}</div>
           <div style="font-size:11px;color:var(--muted)">${new Date(p.paid_at).toLocaleString('th-TH')}</div>
-          ${p.note?`<div style="font-size:12px;color:var(--muted);margin-top:3px">${esc(p.note)}</div>`:''}
+          ${p.note ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">${esc(p.note)}</div>` : ''}
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-direction:column">
           <span class="pill ${p.status==='verified'?'pill-confirmed':p.status==='rejected'?'pill-rejected':'pill-verify'}">${p.status==='verified'?'✅ ยืนยัน':p.status==='rejected'?'❌ ปฏิเสธ':'🔍 รอตรวจ'}</span>
-          ${p.status==='pending_verify'?`<button class="btn btn-primary" style="padding:5px 12px;font-size:12px" onclick="openVerifyModal('${p.id}','${p.bill_id}',${p.amount})">🔍 ตรวจสอบ</button>`:''}
+          ${p.status==='pending_verify' ? `<button class="btn btn-primary" style="padding:5px 12px;font-size:12px" onclick="openVerifyModal('${p.id}','${p.bill_id}',${p.amount})">🔍 ตรวจสอบ</button>` : ''}
         </div>
       </div>
-      ${p.slip_url?`<img src="${p.slip_url}" class="slip-img" style="max-height:220px;object-fit:contain" onclick="window.open('${p.slip_url}','_blank')">`:''}
-    </div>
-  `).join('');
+      ${p.slip_url ? `<img src="${p.slip_url}" class="slip-img" style="max-height:220px;object-fit:contain" loading="lazy" onclick="window.open('${p.slip_url}','_blank')">` : ''}
+    </div>`);
+  }
+  el.innerHTML = parts.join('');
 }
 
 // ============================================================
 // DASHBOARD
 // ============================================================
 async function loadDashboard() {
-  if (!sbReady) return;
+  if (!sb) return;
 
-  // Populate month filter dropdown
+  // Populate month filter (once)
   const mf = document.getElementById('dash-month-filter');
   if (mf && mf.options.length <= 1) {
-    const { data: allBills } = await sb.from('bills').select('month_label').order('issued_at', {ascending:false});
-    const labels = [...new Set((allBills||[]).map(b=>b.month_label).filter(Boolean))];
+    const { data: labelRows } = await sb.from('bills')
+      .select('month_label')
+      .order('issued_at', { ascending: false });
+    const labels = [...new Set((labelRows||[]).map(b => b.month_label).filter(Boolean))];
     labels.forEach(l => {
-      if (!mf.querySelector(`option[value="${l}"]`)) {
-        const o = new Option(l, l); mf.appendChild(o);
-      }
+      if (!mf.querySelector(`option[value="${l}"]`)) mf.appendChild(new Option(l, l));
     });
   }
 
   const selectedMonth = mf?.value || '';
 
-  // Fetch tenants + latest bills
-  const { data: tenants } = await sb.from('tenants').select('*').order('room');
-  let billsQuery = sb.from('bills').select('*').order('issued_at', {ascending:false});
-  if (selectedMonth) billsQuery = billsQuery.eq('month_label', selectedMonth);
-  const { data: allBillsData } = await billsQuery;
+  // Parallel: tenants + bills (no payment_qr)
+  const [tenants, billsRes] = await Promise.all([
+    fetchTenants(),
+    (() => {
+      let q = sb.from('bills')
+        .select('id,tenant_id,room,tenant_name,month_label,total,status,issued_at')
+        .order('issued_at', { ascending: false });
+      if (selectedMonth) q = q.eq('month_label', selectedMonth);
+      return q;
+    })()
+  ]);
 
-  // For each tenant, find latest bill (or filtered month bill)
+  const allBillsData = billsRes.data || [];
+
+  // Map: tenantId → latest bill
   const tenantBillMap = {};
-  (allBillsData||[]).forEach(b => {
+  for (const b of allBillsData) {
     if (!tenantBillMap[b.tenant_id]) tenantBillMap[b.tenant_id] = b;
-  });
+  }
 
-  // Fetch payments for bills that have partial status to calc remaining
-  const partialBillIds = Object.values(tenantBillMap).filter(b=>b.status==='partial').map(b=>b.id);
+  // Fetch payments only for partial bills (optimized: only what's needed)
+  const partialBillIds = Object.values(tenantBillMap).filter(b => b.status === 'partial').map(b => b.id);
   const paymentMap = {};
   if (partialBillIds.length) {
-    const { data: pays } = await sb.from('payments').select('*').in('bill_id', partialBillIds);
+    const { data: pays } = await sb.from('payments')
+      .select('bill_id,status,amount')
+      .in('bill_id', partialBillIds)
+      .eq('status', 'verified');
     (pays||[]).forEach(p => {
-      if (!paymentMap[p.bill_id]) paymentMap[p.bill_id] = [];
-      paymentMap[p.bill_id].push(p);
+      paymentMap[p.bill_id] = (paymentMap[p.bill_id] || 0) + (p.amount || 0);
     });
   }
 
   // Stats
   const bills = Object.values(tenantBillMap);
-  document.getElementById('st-rooms').textContent   = tenants?.length || 0;
-  document.getElementById('st-pending').textContent = bills.filter(b=>b.status==='pending'||b.status==='partial').length;
-  document.getElementById('st-partial').textContent = bills.filter(b=>b.status==='paid').length;
-  document.getElementById('st-confirm').textContent = bills.filter(b=>b.status==='confirmed').length;
+  document.getElementById('st-rooms').textContent   = tenants.length;
+  document.getElementById('st-pending').textContent = bills.filter(b => b.status === 'pending' || b.status === 'partial').length;
+  document.getElementById('st-partial').textContent = bills.filter(b => b.status === 'paid').length;
+  document.getElementById('st-confirm').textContent = bills.filter(b => b.status === 'confirmed').length;
 
   // Render room grid
   const grid = document.getElementById('roomGrid');
-  if (!tenants?.length) {
+  if (!tenants.length) {
     grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="eico">👥</div><p>ยังไม่มีผู้เช่า</p></div>';
     return;
   }
 
-  grid.innerHTML = tenants.map(t => {
+  const parts = [];
+  for (const t of tenants) {
     const bill = tenantBillMap[t.id];
     if (!bill) {
-      return `<div class="room-card status-empty" onclick="showPage('tenants')">
-        <div>
-          <div class="room-num" style="color:#94a3b8">${esc(t.room)}</div>
-          <div class="room-name">${esc(t.name)}</div>
-        </div>
+      parts.push(`<div class="room-card status-empty" onclick="showPage('tenants')">
+        <div><div class="room-num" style="color:#94a3b8">${esc(t.room)}</div><div class="room-name">${esc(t.name)}</div></div>
         <div class="room-amt" style="color:#94a3b8;font-size:12px">ไม่มีบิล</div>
         <div class="room-status-dot" style="background:#cbd5e1"></div>
-      </div>`;
+      </div>`);
+      continue;
     }
 
-    // Calc remaining for partial
-    let displayAmt = bill.total;
-    let amtColor = '#dc2626';
-    let cardClass = 'status-pending';
-    let dotColor = '#f87171';
-    let amtLabel = 'รอชำระ';
+    let displayAmt = bill.total, amtColor = '#dc2626', cardClass = 'status-pending',
+        dotColor = '#f87171', amtLabel = 'รอชำระ';
 
     if (bill.status === 'partial') {
-      // ชำระบางส่วน - แสดงยอดที่เหลือ สีแดง
-      const pays = paymentMap[bill.id] || [];
-      const paid = pays.filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
+      const paid = paymentMap[bill.id] || 0;
       displayAmt = Math.max(0, bill.total - paid);
       amtColor = '#dc2626'; cardClass = 'status-partial'; dotColor = '#f87171'; amtLabel = 'ค้างชำระ';
     } else if (bill.status === 'paid') {
-      // ส่งสลิปแล้วรอยืนยัน - สีเหลือง แสดงยอดเต็ม
-      displayAmt = bill.total;
       amtColor = '#92400e'; cardClass = 'status-paid'; dotColor = '#fbbf24'; amtLabel = 'รอยืนยันสลิป';
     } else if (bill.status === 'confirmed') {
-      displayAmt = bill.total; amtColor = '#166534'; cardClass = 'status-confirmed'; dotColor = '#34d399'; amtLabel = 'ยืนยันแล้ว';
+      amtColor = '#166534'; cardClass = 'status-confirmed'; dotColor = '#34d399'; amtLabel = 'ยืนยันแล้ว';
     }
 
-    return `<div class="room-card ${cardClass}" onclick="openBillDetail('${bill.id}')">
+    parts.push(`<div class="room-card ${cardClass}" onclick="openBillDetail('${bill.id}')">
       <div>
         <div class="room-num" style="color:${amtColor}">${esc(t.room)}</div>
         <div class="room-name">${esc(t.name)}</div>
@@ -1320,19 +1273,17 @@ async function loadDashboard() {
         <div style="font-size:10px;font-weight:700;color:${amtColor};margin-top:1px">${amtLabel}</div>
       </div>
       <div class="room-status-dot" style="background:${dotColor}"></div>
-    </div>`;
-  }).join('');
+    </div>`);
+  }
+  grid.innerHTML = parts.join('');
 }
 
 // ============================================================
 // SUMMARY
 // ============================================================
-const MSHORT2 = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-
 function initSummary() {
   const sel = document.getElementById('sum-year');
-  if (!sel) return;
-  sel.innerHTML = '';
+  if (!sel || sel.options.length > 0) { loadSummary(); return; }
   const curY = new Date().getFullYear() + 543;
   for (let y = curY; y >= curY - 4; y--) {
     const o = new Option('พ.ศ. ' + y, y);
@@ -1343,39 +1294,29 @@ function initSummary() {
 }
 
 async function loadSummary() {
-  const yearBE = parseInt(document.getElementById('sum-year').value);
-  const yearCE = yearBE - 543;
-
-  // Fetch all confirmed bills for selected year
+  const yearBE  = parseInt(document.getElementById('sum-year').value);
   const { data: bills } = await sb.from('bills')
-    .select('*')
-    .eq('status', 'confirmed')
-    .order('issued_at', { ascending: true });
+    .select('room,tenant_name,month_label,rent,water,elec,fine,total')
+    .eq('status', 'confirmed');
 
-  if (!bills) return;
+  const yearBills = (bills||[]).filter(b => b.month_label?.includes(String(yearBE)));
 
-  // Filter by year (match month_label containing the BE year)
-  const yearBills = bills.filter(b => b.month_label && b.month_label.includes(String(yearBE)));
-
-  // ===== MONTHLY TABLE =====
+  // Monthly
   const monthMap = {};
-  MSHORT2.forEach((m, i) => {
-    monthMap[m] = { label: m, rent: 0, water: 0, elec: 0, fine: 0, total: 0, rooms: new Set() };
-  });
-
-  yearBills.forEach(b => {
-    const mKey = MSHORT2.find(m => b.month_label.startsWith(m));
-    if (!mKey) return;
+  MSHORT.forEach(m => { monthMap[m] = { label: m, rent:0, water:0, elec:0, fine:0, total:0, rooms: new Set() }; });
+  for (const b of yearBills) {
+    const mKey = MSHORT.find(m => b.month_label.startsWith(m));
+    if (!mKey) continue;
     monthMap[mKey].rent  += b.rent  || 0;
     monthMap[mKey].water += b.water || 0;
     monthMap[mKey].elec  += b.elec  || 0;
     monthMap[mKey].fine  += b.fine  || 0;
     monthMap[mKey].total += b.total || 0;
     monthMap[mKey].rooms.add(b.room);
-  });
+  }
 
   let grandTotal = 0;
-  const monthRows = MSHORT2.map(m => {
+  const monthRows = MSHORT.map(m => {
     const d = monthMap[m];
     if (d.total === 0) return '';
     grandTotal += d.total;
@@ -1394,18 +1335,16 @@ async function loadSummary() {
     '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">ไม่มีข้อมูลในปีนี้</td></tr>';
   document.getElementById('sum-total-year').textContent = fmt(grandTotal) + ' บาท';
 
-  // ===== ROOM TABLE =====
+  // Room summary
   const roomMap = {};
-  yearBills.forEach(b => {
-    const key = b.room;
-    if (!roomMap[key]) roomMap[key] = { room: b.room, name: b.tenant_name, rent: 0, water: 0, elec: 0, total: 0, count: 0 };
-    roomMap[key].rent  += b.rent  || 0;
-    roomMap[key].water += b.water || 0;
-    roomMap[key].elec  += b.elec  || 0;
-    roomMap[key].total += b.total || 0;
-    roomMap[key].count++;
-  });
-
+  for (const b of yearBills) {
+    if (!roomMap[b.room]) roomMap[b.room] = { room: b.room, name: b.tenant_name, rent:0, water:0, elec:0, total:0, count:0 };
+    roomMap[b.room].rent  += b.rent  || 0;
+    roomMap[b.room].water += b.water || 0;
+    roomMap[b.room].elec  += b.elec  || 0;
+    roomMap[b.room].total += b.total || 0;
+    roomMap[b.room].count++;
+  }
   const roomRows = Object.values(roomMap)
     .sort((a, b) => a.room.localeCompare(b.room, 'th'))
     .map(r => `<tr>
@@ -1426,14 +1365,34 @@ async function loadSummary() {
 // NOTIFICATIONS
 // ============================================================
 async function loadNotifications() {
-  if (!sbReady) return;
-  const { data } = await sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(30);
-  const unread = (data||[]).filter(n=>!n.is_read).length;
+  if (!sb) return;
+  const cached = cache.get('notifications');
+  if (cached && !notifOpen) { updateNotifBadge(cached); return; }
+
+  const { data } = await sb.from('notifications')
+    .select('id,message,is_read,bill_id,created_at')
+    .order('created_at', { ascending: false })
+    .limit(30);
+
+  const rows = data || [];
+  cache.set('notifications', rows);
+  updateNotifBadge(rows);
+  renderNotifications(rows);
+}
+
+function updateNotifBadge(rows) {
+  const unread = rows.filter(n => !n.is_read).length;
   document.getElementById('notifDot').classList.toggle('show', unread > 0);
+}
+
+function renderNotifications(data) {
   const list = document.getElementById('notifList');
-  if (!data?.length) { list.innerHTML = '<div class="empty"><div class="eico">🔕</div><p>ยังไม่มีการแจ้งเตือน</p></div>'; return; }
-  list.innerHTML = data.map(n=>`
-    <div class="notif-item ${n.is_read?'':'unread'}" onclick="openFromNotif('${n.bill_id}','${n.id}')">
+  if (!data.length) {
+    list.innerHTML = '<div class="empty"><div class="eico">🔕</div><p>ยังไม่มีการแจ้งเตือน</p></div>';
+    return;
+  }
+  list.innerHTML = data.map(n => `
+    <div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="openFromNotif('${n.bill_id}','${n.id}')">
       <div class="notif-msg">${esc(n.message)}</div>
       <div class="notif-time">${new Date(n.created_at).toLocaleString('th-TH')}</div>
     </div>
@@ -1441,23 +1400,25 @@ async function loadNotifications() {
 }
 
 async function openFromNotif(billId, notifId) {
-  await sb.from('notifications').update({is_read:true}).eq('id',notifId);
+  await sb.from('notifications').update({ is_read: true }).eq('id', notifId);
+  cache.invalidate('notifications');
   document.getElementById('notifDot').classList.remove('show');
   toggleNotif();
   openBillDetail(billId);
 }
 
 async function markAllRead() {
-  if (!sbReady) return;
-  await sb.from('notifications').update({is_read:true}).eq('is_read',false);
+  if (!sb) return;
+  await sb.from('notifications').update({ is_read: true }).eq('is_read', false);
+  cache.invalidate('notifications');
   document.getElementById('notifDot').classList.remove('show');
   loadNotifications();
 }
 
-function handleNewNotif(payload) {
+function handleNewNotif() {
+  cache.invalidate('notifications', 'payments');
   document.getElementById('notifDot').classList.add('show');
   loadNotifications();
-  // Flash payment badge
   loadPayments();
 }
 </script>
