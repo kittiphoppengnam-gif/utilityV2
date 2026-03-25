@@ -12,8 +12,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Prompt:wght@400;600;700;800&display=swap" rel="stylesheet">
-<!-- Supabase loaded async, deferred init -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --bg:#f0f4f8;--surf:#ffffff;--surf2:#f8fafc;--surf3:#f1f5f9;
@@ -159,6 +157,19 @@ tr:hover td{background:rgba(0,0,0,.012)}
 .empty h3{font-family:'Prompt',sans-serif;font-size:16px;margin-bottom:6px;color:var(--muted)}
 .pay-item{background:var(--surf2);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:8px}
 .pay-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+/* ── iOS Safari PWA fixes ─────────────────────────── */
+button,a,[onclick]{cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:manipulation}
+/* Prevent iOS scroll-bounce eating touch events on fixed elements */
+.sidebar,.topbar,.notif-panel{-webkit-overflow-scrolling:touch}
+/* Fix iOS input zoom */
+input,select,textarea{font-size:16px}
+@supports(-webkit-touch-callout:none){
+  /* iOS-only: ensure modals are scrollable */
+  .modal{-webkit-overflow-scrolling:touch}
+  /* iOS PWA status bar safe area */
+  .topbar{padding-top:env(safe-area-inset-top,0)}
+  .main{padding-top:calc(72px + env(safe-area-inset-top,0))}
+}
 .skeleton{background:linear-gradient(90deg,var(--surf2) 25%,var(--border) 50%,var(--surf2) 75%);
   background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:8px}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -495,6 +506,7 @@ tr:hover td{background:rgba(0,0,0,.012)}
 
 <div id="mBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:45" onclick="closeMobile()"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ============================================================
 // CONFIG
@@ -598,7 +610,7 @@ function showAlert(msg, type='warn') {
 // ============================================================
 // INIT
 // ============================================================
-(function boot() {
+function boot() {
   // Realtime: notifications only
   sb.channel('notif-ch')
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications'},handleNewNotif)
@@ -607,11 +619,36 @@ function showAlert(msg, type='warn') {
   loadPaySettings();
   loadDormSettings();
 
-  // Fire dashboard + notifications in parallel, don't block paint
-  requestAnimationFrame(() => {
+  // Use setTimeout instead of RAF — more reliable on iOS Safari PWA
+  setTimeout(() => {
     Promise.all([loadDashboard(), loadNotifications()]);
-  });
-})();
+  }, 0);
+}
+
+// Wait for DOM ready — critical for iOS PWA (script in <head>)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot(); // DOM already ready (cached/restored page)
+}
+
+// ── iOS PWA: reload data when app returns from background ──
+// iOS suspends the page; visibilitychange fires on restore
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    // Invalidate all caches so fresh data loads
+    cache.del('bills');
+    cache.del('tenants');
+    cache.del('payments');
+    cache.del('notifications');
+    cache.monthLabels = null;
+    // Reload active page data
+    const activePage = document.querySelector('.page.active')?.id?.replace('page-', '');
+    if (activePage === 'dashboard') loadDashboard();
+    else if (activePage === 'bills') loadBills();
+    else if (activePage === 'payments') loadPayments();
+  }
+});
 
 // ============================================================
 // NAVIGATION
