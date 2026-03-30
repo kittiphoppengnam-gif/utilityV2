@@ -972,8 +972,8 @@ async function loadBills() {
   const month =document.getElementById('filterMonth')?.value ||'';
   const key   ='bills_'+status+'_'+month;
 
-  // Populate month dropdown (shared cache, no extra query)
-  await populateMonthSelect(document.getElementById('filterMonth'), month);
+  // Populate month dropdown in parallel with cache check
+  populateMonthSelect(document.getElementById('filterMonth'), month);
 
   const cached=cache.get(key);
   if(cached){renderBillsTable(cached);return;}
@@ -1139,8 +1139,8 @@ async function loadDashboard() {
   const mf=document.getElementById('dash-month-filter');
   const selectedMonth=mf?.value||'';
 
-  // Populate month dropdown via shared cache (zero extra query after first load)
-  await populateMonthSelect(mf, selectedMonth);
+  // Populate month dropdown fire-and-forget — don't block main data load
+  populateMonthSelect(mf, selectedMonth);
 
   // Parallel: tenants (cached) + bills filtered
   const[tenants,billsRes]=await Promise.all([
@@ -1152,6 +1152,11 @@ async function loadDashboard() {
   ]);
 
   const allBills=billsRes.data||[];
+
+  // Seed shared monthLabels cache from data we already have — zero extra query
+  if(!cache.monthLabels && allBills.length) {
+    cache.monthLabels=[...new Set(allBills.map(b=>b.month_label).filter(Boolean))];
+  }
 
   // tenantId → latest bill
   const billMap={};
