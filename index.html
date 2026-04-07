@@ -514,8 +514,8 @@ input,select,textarea{font-size:16px}
 const SUPA_URL = 'https://mdnupimieldwqrgxczgu.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kbnVwaW1pZWxkd3FyZ3hjemd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyODQwNDAsImV4cCI6MjA4Nzg2MDA0MH0.r_z0eYczkO4DfElyU0eVK4CFXQx7r_EmwCepQKhMUQM';
 
-// Create Supabase client immediately (script is sync now)
-const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+// sb declared as let — initialized safely inside boot() after lib is confirmed ready
+let sb = null;
 
 let qrBase64 = '';
 let activeBillId = null;
@@ -611,6 +611,14 @@ function showAlert(msg, type='warn') {
 // INIT
 // ============================================================
 function boot() {
+  // Init Supabase client here — guaranteed lib is loaded since script is before </body>
+  if (typeof supabase === 'undefined' || !supabase.createClient) {
+    // Lib not ready yet — retry after short delay (iOS Safari cold start)
+    setTimeout(boot, 100);
+    return;
+  }
+  sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
   // Realtime: notifications only
   sb.channel('notif-ch')
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications'},handleNewNotif)
@@ -619,23 +627,23 @@ function boot() {
   loadPaySettings();
   loadDormSettings();
 
-  // Use setTimeout instead of RAF — more reliable on iOS Safari PWA
+  // Load dashboard — use 50ms delay on mobile to let renderer settle
   setTimeout(() => {
-    Promise.all([loadDashboard(), loadNotifications()]);
-  }, 0);
+    Promise.all([loadDashboard(), loadNotifications()]).catch(console.error);
+  }, 50);
 }
 
-// Wait for DOM ready — critical for iOS PWA (script in <head>)
+// Trigger boot after DOM + scripts are ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', boot);
 } else {
-  boot(); // DOM already ready (cached/restored page)
+  boot();
 }
 
 // ── iOS PWA: reload data when app returns from background ──
 // iOS suspends the page; visibilitychange fires on restore
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') {
+  if (document.visibilityState === 'visible' && sb) {
     // Invalidate all caches so fresh data loads
     cache.del('bills');
     cache.del('tenants');
@@ -806,6 +814,7 @@ function delQr(e) {
 // TENANTS — cached
 // ============================================================
 async function fetchTenants(force=false) {
+  if(!sb) return [];
   if(!force){const c=cache.get('tenants');if(c) return c;}
   const{data}=await sb.from('tenants').select('id,name,room,phone,id_card,address,created_at').order('room');
   const rows=data||[];
@@ -1136,6 +1145,7 @@ function renderPayments(data) {
 // DASHBOARD — optimized: 1 round-trip for bills when no filter
 // ============================================================
 async function loadDashboard() {
+  if(!sb) return;
   const mf=document.getElementById('dash-month-filter');
   const selectedMonth=mf?.value||'';
 
@@ -1263,6 +1273,7 @@ async function loadSummary() {
 // NOTIFICATIONS
 // ============================================================
 async function loadNotifications() {
+  if(!sb) return;
   const cached=cache.get('notifications');
   if(cached&&!notifOpen){updateNotifBadge(cached);return;}
   const{data}=await sb.from('notifications').select('id,message,is_read,bill_id,created_at')
