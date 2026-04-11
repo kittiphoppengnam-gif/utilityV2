@@ -508,6 +508,11 @@ input,select,textarea{font-size:16px}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// Auto-reload once on first open (fixes iOS PWA cold-start blank screen)
+if (!sessionStorage.getItem('_booted')) {
+  sessionStorage.setItem('_booted', '1');
+  location.reload();
+}
 // ============================================================
 // CONFIG
 // ============================================================
