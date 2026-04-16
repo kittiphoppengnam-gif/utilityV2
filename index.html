@@ -208,6 +208,7 @@ input,select,textarea{font-size:16px}
     <button class="nav-btn" onclick="showPage('create-bill')" id="nav-create-bill">➕ สร้างบิลใหม่</button>
     <button class="nav-btn" onclick="showPage('tenants')" id="nav-tenants">👥 ผู้เช่า</button>
     <button class="nav-btn" onclick="showPage('summary')" id="nav-summary">💰 สรุปรายรับ</button>
+    <button class="nav-btn" onclick="showPage('settings')" id="nav-settings">⚙️ ตั้งค่า</button>
   </div>
 </aside>
 
@@ -323,7 +324,10 @@ input,select,textarea{font-size:16px}
       <div class="fgrid">
         <div class="fg"><label>มิเตอร์ก่อนหน้า</label><input type="number" id="cb-wprev" placeholder="0" oninput="calcWater()"></div>
         <div class="fg"><label>มิเตอร์ปัจจุบัน</label><input type="number" id="cb-wcurr" placeholder="0" oninput="calcWater()"></div>
-        <div class="fg full"><label>ราคา/หน่วย (บาท)</label><input type="number" id="cb-wrate" value="18" oninput="calcWater()"></div>
+        <div class="fg full">
+          <label>ราคา/หน่วย (บาท) — <span style="color:var(--muted)">จากการตั้งค่า</span></label>
+          <input type="number" id="cb-wrate" placeholder="18" oninput="calcWater()">
+        </div>
       </div>
       <div class="unit-row"><span style="color:var(--muted);font-size:13px">หน่วยที่ใช้</span><span class="unit-val" style="color:var(--water)" id="cb-wunits">0 หน่วย</span></div>
       <div class="unit-row" style="margin-top:6px"><span style="color:var(--muted);font-size:13px">💧 รวมค่าน้ำ</span><span class="unit-val" style="color:var(--water)" id="cb-wtotal">0.00 บาท</span></div>
@@ -333,7 +337,10 @@ input,select,textarea{font-size:16px}
       <div class="fgrid">
         <div class="fg"><label>มิเตอร์ก่อนหน้า</label><input type="number" id="cb-eprev" placeholder="0" oninput="calcElec()"></div>
         <div class="fg"><label>มิเตอร์ปัจจุบัน</label><input type="number" id="cb-ecurr" placeholder="0" oninput="calcElec()"></div>
-        <div class="fg full"><label>ราคา/หน่วย (บาท)</label><input type="number" id="cb-erate" value="7" oninput="calcElec()"></div>
+        <div class="fg full">
+          <label>ราคา/หน่วย (บาท) — <span style="color:var(--muted)">จากการตั้งค่า</span></label>
+          <input type="number" id="cb-erate" placeholder="7" oninput="calcElec()">
+        </div>
       </div>
       <div class="unit-row"><span style="color:var(--muted);font-size:13px">หน่วยที่ใช้</span><span class="unit-val" style="color:var(--elec)" id="cb-eunits">0 หน่วย</span></div>
       <div class="unit-row" style="margin-top:6px"><span style="color:var(--muted);font-size:13px">⚡ รวมค่าไฟ</span><span class="unit-val" style="color:var(--elec)" id="cb-etotal">0.00 บาท</span></div>
@@ -351,32 +358,6 @@ input,select,textarea{font-size:16px}
       <div class="grand"><span style="font-family:'Prompt',sans-serif;font-weight:700">💰 รวมทั้งสิ้น</span><span class="grand-amt" id="s-grand">0.00 บาท</span></div>
       <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="submitBill()">✅ สร้างและส่งบิล</button>
     </div>
-    <div class="card">
-      <div class="card-head"><div class="cdot" style="background:var(--rent)"></div><span class="card-title">🏠 ข้อมูลหอพัก</span></div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">ตั้งค่าครั้งเดียว บันทึกอัตโนมัติ</div>
-      <div class="fgrid">
-        <div class="fg full"><label>ชื่อหอพัก</label><input type="text" id="dorm-name" placeholder="เช่น หอพักสุขสบาย" oninput="saveDormSettings()"></div>
-        <div class="fg full"><label>ที่อยู่หอพัก</label><input type="text" id="dorm-address" placeholder="เลขที่ ถนน ตำบล อำเภอ จังหวัด" oninput="saveDormSettings()"></div>
-        <div class="fg"><label>เบอร์โทรหอพัก</label><input type="text" id="dorm-phone" placeholder="0xx-xxx-xxxx" oninput="saveDormSettings()"></div>
-        <div class="fg"><label>เลขประจำตัวผู้เสียภาษี</label><input type="text" id="dorm-owner" placeholder="เช่น 1234567890123" oninput="saveDormSettings()"></div>
-        <div class="fg"><label>ชื่อผู้รับเงิน</label><input type="text" id="dorm-signer" placeholder="ชื่อ-นามสกุล" oninput="saveDormSettings()"></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="cdot" style="background:var(--ok)"></div><span class="card-title">💳 ช่องทางชำระเงิน</span></div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">ตั้งค่าครั้งเดียว บันทึกอัตโนมัติ</div>
-      <div id="qrUploadZone" class="qr-upload-zone" onclick="document.getElementById('qrFileIn').click()">
-        <div id="qrPlaceholder"><div style="font-size:28px;margin-bottom:6px">📷</div><div style="font-size:13px;color:var(--muted)">อัปโหลดรูป QR พร้อมเพย์</div></div>
-        <img id="qrPrev" style="display:none;max-width:160px;max-height:160px;border-radius:9px;margin:0 auto" loading="lazy">
-        <button id="qrDelBtn" onclick="delQr(event)" style="display:none;position:absolute;top:8px;right:8px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);border-radius:6px;color:var(--danger);font-size:11px;padding:4px 8px;cursor:pointer">✕ ลบ</button>
-      </div>
-      <input type="file" id="qrFileIn" accept="image/*" style="display:none" onchange="handleQrUpload(event)">
-      <div class="fgrid" style="margin-top:14px">
-        <div class="fg"><label>ชื่อธนาคาร</label><input type="text" id="pay-bank" placeholder="เช่น กสิกรไทย" oninput="savePaySettings()"></div>
-        <div class="fg"><label>เลขบัญชี</label><input type="text" id="pay-num" placeholder="xxx-x-xxxxx-x" oninput="savePaySettings()"></div>
-        <div class="fg full"><label>ชื่อบัญชี</label><input type="text" id="pay-name" placeholder="ชื่อ-นามสกุล" oninput="savePaySettings()"></div>
-      </div>
-    </div>
   </div>
 
   <!-- TENANTS -->
@@ -393,13 +374,53 @@ input,select,textarea{font-size:16px}
 
   <!-- SETTINGS -->
   <div class="page" id="page-settings">
-    <div class="page-hd"><h1>⚙️ ตั้งค่า Supabase</h1><p>กรอก credentials จาก Supabase project ของคุณ</p></div>
+    <div class="page-hd"><h1>⚙️ ตั้งค่า</h1><p>ข้อมูลหอพัก อัตราค่าบริการ และช่องทางชำระเงิน</p></div>
+
+    <!-- ข้อมูลหอพัก -->
     <div class="card">
-      <div class="card-head"><div class="cdot" style="background:var(--rent)"></div><span class="card-title">Supabase Credentials</span></div>
-      <div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);border-radius:10px;padding:14px;text-align:center">
-        <div style="font-size:22px;margin-bottom:6px">✅</div>
-        <div style="font-family:'Prompt',sans-serif;font-weight:700;color:var(--ok)">เชื่อมต่อ Supabase แล้ว</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">mdnupimieldwqrgxczgu.supabase.co</div>
+      <div class="card-head"><div class="cdot" style="background:var(--rent);box-shadow:0 0 7px rgba(124,58,237,.4)"></div><span class="card-title">🏠 ข้อมูลหอพัก</span></div>
+      <div class="fgrid">
+        <div class="fg full"><label>ชื่อหอพัก</label><input type="text" id="dorm-name" placeholder="เช่น หอพักสุขสบาย" oninput="saveDormSettings()"></div>
+        <div class="fg full"><label>ที่อยู่หอพัก</label><input type="text" id="dorm-address" placeholder="เลขที่ ถนน ตำบล อำเภอ จังหวัด" oninput="saveDormSettings()"></div>
+        <div class="fg"><label>เบอร์โทรหอพัก</label><input type="text" id="dorm-phone" placeholder="0xx-xxx-xxxx" oninput="saveDormSettings()"></div>
+        <div class="fg"><label>เลขประจำตัวผู้เสียภาษี</label><input type="text" id="dorm-owner" placeholder="1234567890123" oninput="saveDormSettings()"></div>
+        <div class="fg full"><label>ชื่อผู้รับเงิน (ลงนามในใบเสร็จ)</label><input type="text" id="dorm-signer" placeholder="ชื่อ-นามสกุล" oninput="saveDormSettings()"></div>
+      </div>
+    </div>
+
+    <!-- อัตราค่าบริการ -->
+    <div class="card">
+      <div class="card-head"><div class="cdot" style="background:var(--elec);box-shadow:0 0 7px rgba(217,119,6,.4)"></div><span class="card-title">💰 อัตราค่าบริการ</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">ใช้เป็นค่าเริ่มต้นเมื่อสร้างบิลใหม่</div>
+      <div class="fgrid c3">
+        <div class="fg">
+          <label>ค่าห้องพักเริ่มต้น (บาท)</label>
+          <input type="number" id="cfg-rent" placeholder="0" oninput="saveRateSettings()">
+        </div>
+        <div class="fg">
+          <label>💧 ค่าน้ำ/หน่วย (บาท)</label>
+          <input type="number" id="cfg-wrate" placeholder="18" oninput="saveRateSettings()">
+        </div>
+        <div class="fg">
+          <label>⚡ ค่าไฟ/หน่วย (บาท)</label>
+          <input type="number" id="cfg-erate" placeholder="7" oninput="saveRateSettings()">
+        </div>
+      </div>
+    </div>
+
+    <!-- ช่องทางชำระเงิน -->
+    <div class="card">
+      <div class="card-head"><div class="cdot" style="background:var(--ok);box-shadow:0 0 7px rgba(5,150,105,.4)"></div><span class="card-title">💳 ช่องทางชำระเงิน</span></div>
+      <div id="qrUploadZone" class="qr-upload-zone" onclick="document.getElementById('qrFileIn').click()">
+        <div id="qrPlaceholder"><div style="font-size:28px;margin-bottom:6px">📷</div><div style="font-size:13px;color:var(--muted)">อัปโหลดรูป QR พร้อมเพย์</div></div>
+        <img id="qrPrev" style="display:none;max-width:160px;max-height:160px;border-radius:9px;margin:0 auto" loading="lazy">
+        <button id="qrDelBtn" onclick="delQr(event)" style="display:none;position:absolute;top:8px;right:8px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);border-radius:6px;color:var(--danger);font-size:11px;padding:4px 8px;cursor:pointer">✕ ลบ</button>
+      </div>
+      <input type="file" id="qrFileIn" accept="image/*" style="display:none" onchange="handleQrUpload(event)">
+      <div class="fgrid" style="margin-top:14px">
+        <div class="fg"><label>ชื่อธนาคาร</label><input type="text" id="pay-bank" placeholder="เช่น กสิกรไทย" oninput="savePaySettings()"></div>
+        <div class="fg"><label>เลขบัญชี</label><input type="text" id="pay-num" placeholder="xxx-x-xxxxx-x" oninput="savePaySettings()"></div>
+        <div class="fg full"><label>ชื่อบัญชี</label><input type="text" id="pay-name" placeholder="ชื่อ-นามสกุล" oninput="savePaySettings()"></div>
       </div>
     </div>
   </div>
@@ -580,12 +601,14 @@ const _ls = {
   _p: {},
   _g(k, def='{}') { return this._p[k] ??= JSON.parse(localStorage.getItem(k)||def); },
   _s(k,v)         { this._p[k]=v; localStorage.setItem(k,JSON.stringify(v)); },
-  getPaySettings()  { return this._g('pay_settings'); },
-  getDormSettings() { return this._g('dorm_settings'); },
-  getRentMap()      { return this._g('rent_map'); },
-  savePaySettings(v)  { this._s('pay_settings',v); },
-  saveDormSettings(v) { this._s('dorm_settings',v); },
-  saveRentMap(v)      { this._s('rent_map',v); },
+  getPaySettings()   { return this._g('pay_settings'); },
+  getDormSettings()  { return this._g('dorm_settings'); },
+  getRentMap()       { return this._g('rent_map'); },
+  getRateSettings()  { return this._g('rate_settings','{"rent":0,"wrate":18,"erate":7}'); },
+  savePaySettings(v)   { this._s('pay_settings',v); },
+  saveDormSettings(v)  { this._s('dorm_settings',v); },
+  saveRentMap(v)       { this._s('rent_map',v); },
+  saveRateSettings(v)  { this._s('rate_settings',v); },
 };
 
 // ============================================================
@@ -637,6 +660,7 @@ function boot() {
 
   loadPaySettings();
   loadDormSettings();
+  loadRateSettings();
 
   // Load dashboard — use 50ms delay on mobile to let renderer settle
   setTimeout(() => {
@@ -695,6 +719,7 @@ function showPage(id) {
   if (id==='tenants')     loadTenants();
   if (id==='create-bill') initCreateBill();
   if (id==='summary')     initSummary();
+  if (id==='settings')    { loadDormSettings(); loadPaySettings(); loadRateSettings(); }
   if (window.innerWidth<=700) closeMobile();
 }
 
@@ -738,8 +763,20 @@ function initCreateBill() {
       ySel.appendChild(o);
     }
   }
+  // Apply rates from settings
+  const rates=_ls.getRateSettings();
+  if(rates.wrate) document.getElementById('cb-wrate').value=rates.wrate;
+  if(rates.erate) document.getElementById('cb-erate').value=rates.erate;
+  // Reset meter fields
+  document.getElementById('cb-wprev').value='';
+  document.getElementById('cb-wcurr').value='';
+  document.getElementById('cb-eprev').value='';
+  document.getElementById('cb-ecurr').value='';
+  document.getElementById('cb-rent').value = rates.rent||'';
+  document.getElementById('cb-fine').value='';
+  document.getElementById('cb-fine-reason').value='';
+  calcWater(); calcElec(); updateGrand();
   loadTenantDropdown();
-  loadDormSettings();
 }
 
 function getMonthLabel() {
@@ -800,6 +837,24 @@ function loadDormSettings() {
   const s=document.getElementById('dorm-signer');
   if(s&&d.signer) s.value=d.signer;
 }
+function loadRateSettings() {
+  const r=_ls.getRateSettings();
+  if(document.getElementById('cfg-rent'))  document.getElementById('cfg-rent').value  = r.rent  || '';
+  if(document.getElementById('cfg-wrate')) document.getElementById('cfg-wrate').value = r.wrate || 18;
+  if(document.getElementById('cfg-erate')) document.getElementById('cfg-erate').value = r.erate || 7;
+}
+let _rateTimer;
+function saveRateSettings() {
+  clearTimeout(_rateTimer);
+  _rateTimer=setTimeout(()=>{
+    _ls.saveRateSettings({
+      rent:  parseFloat(document.getElementById('cfg-rent').value)||0,
+      wrate: parseFloat(document.getElementById('cfg-wrate').value)||18,
+      erate: parseFloat(document.getElementById('cfg-erate').value)||7,
+    });
+  },300);
+}
+
 let _dormTimer;
 function saveDormSettings() {
   clearTimeout(_dormTimer);
@@ -861,13 +916,51 @@ async function loadTenantDropdown() {
   if(prev) sel.value=prev;
 }
 
-function onTenantSelect() {
+async function onTenantSelect() {
   const sel=document.getElementById('cb-tenant');
   const opt=sel.options[sel.selectedIndex];
   if(!opt?.dataset.json) return;
   const t=JSON.parse(opt.dataset.json);
+
+  // Apply default rent from settings
+  const rates=_ls.getRateSettings();
   const rm=_ls.getRentMap();
-  if(rm[t.id]){document.getElementById('cb-rent').value=rm[t.id];updateGrand();}
+  const defaultRent = rm[t.id] || rates.rent || 0;
+  if(defaultRent) { document.getElementById('cb-rent').value=defaultRent; updateGrand(); }
+
+  // Fetch latest bill for this tenant to get prev meter readings
+  if(!sb) return;
+  const{data:bills}=await sb.from('bills')
+    .select('water_units,elec_units,rent,water,elec')
+    .eq('tenant_id',t.id)
+    .order('issued_at',{ascending:false})
+    .limit(1);
+  if(!bills?.length) return;
+  const prev=bills[0];
+  // มิเตอร์ก่อนหน้า = มิเตอร์ current ของบิลล่าสุด (prev+units = curr)
+  // เราเก็บ water_units ไว้ แต่ไม่ได้เก็บ curr meter โดยตรง
+  // ดึง wcurr จาก wprev + water_units ของบิลล่าสุด
+  const wPrevRaw = parseFloat(document.getElementById('cb-wprev').value)||0;
+  // ใช้ค่า water_units เป็น hint — หา prev meter จาก bill ล่าสุด
+  // bill เก็บ: water_units (หน่วยที่ใช้), แต่ไม่ได้เก็บ meter_curr
+  // ดึง wcurr_prev จาก bills table column ถ้ามี หรือใช้ 0
+  const{data:meterBill}=await sb.from('bills')
+    .select('meter_wcurr,meter_ecurr,rent')
+    .eq('tenant_id',t.id)
+    .order('issued_at',{ascending:false})
+    .limit(1);
+  if(meterBill?.length && meterBill[0].meter_wcurr!=null) {
+    document.getElementById('cb-wprev').value=meterBill[0].meter_wcurr;
+    calcWater();
+  }
+  if(meterBill?.length && meterBill[0].meter_ecurr!=null) {
+    document.getElementById('cb-eprev').value=meterBill[0].meter_ecurr;
+    calcElec();
+  }
+  if(meterBill?.length && meterBill[0].rent && !defaultRent) {
+    document.getElementById('cb-rent').value=meterBill[0].rent;
+    updateGrand();
+  }
 }
 
 async function loadTenants() {
@@ -979,6 +1072,8 @@ async function submitBill() {
     total:r+w+e+f,
     water_units:Math.max(0,gv('cb-wcurr')-gv('cb-wprev')),
     elec_units :Math.max(0,gv('cb-ecurr')-gv('cb-eprev')),
+    meter_wcurr:gv('cb-wcurr'),   // บันทึกมิเตอร์ปัจจุบัน → ใช้เป็นมิเตอร์ก่อนหน้าของบิลถัดไป
+    meter_ecurr:gv('cb-ecurr'),
     status:'pending',payment_qr:qrBase64,
     bank_name:pay.bank||'',bank_number:pay.num||'',bank_account_name:pay.name||''
   };
