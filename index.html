@@ -383,13 +383,9 @@ input,select,textarea{font-size:16px}
     </div>
 
     <div class="card">
-      <div class="card-head"><div class="cdot" style="background:var(--elec);box-shadow:0 0 7px rgba(217,119,6,.4)"></div><span class="card-title">💰 อัตราค่าบริการ</span></div>
+      <div class="card-head"><div class="cdot" style="background:var(--elec);box-shadow:0 0 7px rgba(217,119,6,.4)"></div><span class="card-title">💰 อัตราค่าน้ำ/ค่าไฟ</span></div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px">ใช้เป็นค่าเริ่มต้นเมื่อสร้างบิลใหม่</div>
-      <div class="fgrid c3">
-        <div class="fg">
-          <label>ค่าห้องพักเริ่มต้น (บาท)</label>
-          <input type="number" id="cfg-rent" placeholder="0" oninput="saveRateSettings()">
-        </div>
+      <div class="fgrid">
         <div class="fg">
           <label>💧 ค่าน้ำ/หน่วย (บาท)</label>
           <input type="number" id="cfg-wrate" placeholder="18" oninput="saveRateSettings()">
@@ -399,6 +395,12 @@ input,select,textarea{font-size:16px}
           <input type="number" id="cfg-erate" placeholder="7" oninput="saveRateSettings()">
         </div>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="cdot" style="background:var(--rent);box-shadow:0 0 7px rgba(124,58,237,.4)"></div><span class="card-title">🏠 ค่าเช่าห้อง (รายห้อง)</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">ตั้งราคาค่าเช่าแยกแต่ละห้อง — ห้องที่ปล่อยว่างจะให้กรอกเองตอนสร้างบิล</div>
+      <div id="roomRentList"><div style="color:var(--muted);text-align:center;padding:20px;font-size:13px">กำลังโหลด...</div></div>
     </div>
 
     <div class="card">
@@ -797,7 +799,7 @@ function initCreateBill() {
   document.getElementById('cb-wcurr').value='';
   document.getElementById('cb-eprev').value='';
   document.getElementById('cb-ecurr').value='';
-  document.getElementById('cb-rent').value = rates.rent||'';
+  document.getElementById('cb-rent').value='';  // empty by default — filled when tenant selected
   document.getElementById('cb-fine').value='';
   document.getElementById('cb-fine-reason').value='';
   // Reset submit button
@@ -869,16 +871,62 @@ function loadDormSettings() {
 }
 function loadRateSettings() {
   const r=_ls.getRateSettings();
-  if(document.getElementById('cfg-rent'))  document.getElementById('cfg-rent').value  = r.rent  || '';
   if(document.getElementById('cfg-wrate')) document.getElementById('cfg-wrate').value = r.wrate || 18;
   if(document.getElementById('cfg-erate')) document.getElementById('cfg-erate').value = r.erate || 7;
+  loadRoomRentList();
+}
+
+// Render per-room rent inputs in settings page
+async function loadRoomRentList() {
+  const container = document.getElementById('roomRentList');
+  if(!container) return;
+  const tenants = await fetchTenants();
+  if(!tenants.length) {
+    container.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px;font-size:13px">ยังไม่มีผู้เช่า — เพิ่มผู้เช่าก่อนในหน้า "ผู้เช่า"</div>';
+    return;
+  }
+  const rentMap = _ls.getRentMap();
+  // Sort by room number naturally
+  const sorted = [...tenants].sort((a,b)=>a.room.localeCompare(b.room,undefined,{numeric:true,sensitivity:'base'}));
+  container.innerHTML = sorted.map(t => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surf2);border:1px solid var(--border);border-radius:10px;margin-bottom:6px">
+      <div style="flex:1;min-width:0">
+        <div style="font-family:'Prompt',sans-serif;font-weight:700;color:var(--water);font-size:14px">ห้อง ${esc(t.room)}</div>
+        <div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <input type="number" placeholder="ปล่อยว่าง" value="${rentMap[t.id]||''}"
+          data-tenant-id="${esc(t.id)}"
+          oninput="saveRoomRent(this)"
+          style="width:110px;text-align:right;font-family:'Prompt',sans-serif;font-weight:700">
+        <span style="font-size:12px;color:var(--muted)">บาท</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+let _roomRentTimer;
+function saveRoomRent(inputEl) {
+  clearTimeout(_roomRentTimer);
+  _roomRentTimer = setTimeout(() => {
+    const tenantId = inputEl.dataset.tenantId;
+    const val = parseFloat(inputEl.value);
+    const rentMap = _ls.getRentMap();
+    if(!val || val <= 0) {
+      delete rentMap[tenantId];
+    } else {
+      rentMap[tenantId] = val;
+    }
+    _ls.saveRentMap(rentMap);
+  }, 300);
 }
 let _rateTimer;
 function saveRateSettings() {
   clearTimeout(_rateTimer);
   _rateTimer=setTimeout(()=>{
+    const cur = _ls.getRateSettings();
     _ls.saveRateSettings({
-      rent:  parseFloat(document.getElementById('cfg-rent').value)||0,
+      rent:  cur.rent || 0,  // kept for backward compatibility, no longer used
       wrate: parseFloat(document.getElementById('cfg-wrate').value)||18,
       erate: parseFloat(document.getElementById('cfg-erate').value)||7,
     });
@@ -959,10 +1007,15 @@ async function onTenantSelect() {
   let t;
   try { t=JSON.parse(opt.dataset.json); } catch(e) { return; }
 
-  const rates=_ls.getRateSettings();
   const rm=_ls.getRentMap();
-  const defaultRent = rm[t.id] || rates.rent || 0;
-  if(defaultRent) { document.getElementById('cb-rent').value=defaultRent; updateGrand(); }
+  const roomRent = rm[t.id] || 0;
+  const rentInput = document.getElementById('cb-rent');
+  if(roomRent > 0) {
+    rentInput.value = roomRent;
+  } else {
+    rentInput.value = '';  // not set in settings — let admin fill
+  }
+  updateGrand();
 
   if(!sb) return;
   const{data:meterBill}=await sb.from('bills')
@@ -977,10 +1030,6 @@ async function onTenantSelect() {
   if(meterBill?.length && meterBill[0].meter_ecurr!=null) {
     document.getElementById('cb-eprev').value=meterBill[0].meter_ecurr;
     calcElec();
-  }
-  if(meterBill?.length && meterBill[0].rent && !defaultRent) {
-    document.getElementById('cb-rent').value=meterBill[0].rent;
-    updateGrand();
   }
 }
 
