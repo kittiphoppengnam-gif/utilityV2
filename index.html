@@ -819,19 +819,23 @@ function getMonthLabel() {
 // CALC
 // ============================================================
 function calcWater() {
-  const u=Math.max(0,gv('cb-wcurr')-gv('cb-wprev')), t=u*gv('cb-wrate');
+  const u=Math.max(0,gv('cb-wcurr')-gv('cb-wprev'));
+  const raw = u*gv('cb-wrate');
+  const t = raw > 0 ? Math.max(100, raw) : 0;  // minimum 100 baht if usage > 0
   document.getElementById('cb-wunits').textContent=u.toLocaleString()+' หน่วย';
   document.getElementById('cb-wtotal').textContent=fmt(t)+' บาท';
   updateGrand();
 }
 function calcElec() {
-  const u=Math.max(0,gv('cb-ecurr')-gv('cb-eprev')), t=u*gv('cb-erate');
+  const u=Math.max(0,gv('cb-ecurr')-gv('cb-eprev'));
+  const raw = u*gv('cb-erate');
+  const t = raw > 0 ? Math.max(100, raw) : 0;  // minimum 100 baht if usage > 0
   document.getElementById('cb-eunits').textContent=u.toLocaleString()+' หน่วย';
   document.getElementById('cb-etotal').textContent=fmt(t)+' บาท';
   updateGrand();
 }
-const getWater=()=>Math.max(0,gv('cb-wcurr')-gv('cb-wprev'))*gv('cb-wrate');
-const getElec =()=>Math.max(0,gv('cb-ecurr')-gv('cb-eprev'))*gv('cb-erate');
+const getWater=()=>{const u=Math.max(0,gv('cb-wcurr')-gv('cb-wprev')); const raw=u*gv('cb-wrate'); return raw>0?Math.max(100,raw):0;};
+const getElec =()=>{const u=Math.max(0,gv('cb-ecurr')-gv('cb-eprev')); const raw=u*gv('cb-erate'); return raw>0?Math.max(100,raw):0;};
 function updateGrand() {
   const r=gv('cb-rent'),w=getWater(),e=getElec(),f=gv('cb-fine');
   document.getElementById('s-rent').textContent =fmt(r)+' บาท';
@@ -1248,7 +1252,11 @@ async function submitBill() {
     if(error) throw error;
     cache.del('bills'); cache.monthLabels=null;
     showAlert(`✅ สร้างบิลสำเร็จ! ห้อง ${t.room} — ${t.name} ยอด ${fmt(r+w+e+f)} บาท`,'ok');
-    showPage('bills');
+    
+    // Reset form to create next bill, stay on same page
+    document.getElementById('cb-tenant').value = '';
+    ['cb-wprev','cb-wcurr','cb-eprev','cb-ecurr','cb-rent','cb-fine','cb-fine-reason'].forEach(id=>document.getElementById(id).value='');
+    calcWater(); calcElec(); updateGrand();
   } catch(err) {
     showAlert('เกิดข้อผิดพลาด: '+(err.message||err),'danger');
   } finally {
