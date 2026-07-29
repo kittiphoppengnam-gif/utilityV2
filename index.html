@@ -468,6 +468,41 @@ input,select,textarea{font-size:16px}
     <div id="bd-body"></div>
     <div class="modal-btns">
       <button class="btn btn-ghost" onclick="closeModal('billDetailOverlay')">ปิด</button>
+      <button class="btn btn-primary" id="bd-edit-btn">✏️ แก้ไข</button>
+      <button class="btn btn-danger" id="bd-delete-btn">🗑 ลบบิล</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Edit Bill -->
+<div class="overlay" id="editBillOverlay">
+  <div class="modal">
+    <h2 id="eb-title">✏️ แก้ไขบิล</h2>
+    <div class="modal-sub" id="eb-sub"></div>
+    <div class="fg" style="margin-bottom:12px"><label>ค่าเช่าห้อง (บาท)</label><input type="number" id="eb-rent" placeholder="0" oninput="ebUpdateGrand()"></div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px">💧 ค่าน้ำประปา</div>
+    <div class="fgrid" style="margin-bottom:6px">
+      <div class="fg"><label>มิเตอร์ก่อนหน้า</label><input type="number" id="eb-wprev" placeholder="0" oninput="ebCalcWater()"></div>
+      <div class="fg"><label>มิเตอร์ปัจจุบัน</label><input type="number" id="eb-wcurr" placeholder="0" oninput="ebCalcWater()"></div>
+      <div class="fg full"><label>ราคา/หน่วย (บาท)</label><input type="number" id="eb-wrate" placeholder="18" oninput="ebCalcWater()"></div>
+    </div>
+    <div class="unit-row"><span style="color:var(--muted);font-size:13px">💧 รวมค่าน้ำ</span><span class="unit-val" style="color:var(--water)" id="eb-wtotal">0.00 บาท</span></div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;margin:14px 0 6px">⚡ ค่าไฟฟ้า</div>
+    <div class="fgrid" style="margin-bottom:6px">
+      <div class="fg"><label>มิเตอร์ก่อนหน้า</label><input type="number" id="eb-eprev" placeholder="0" oninput="ebCalcElec()"></div>
+      <div class="fg"><label>มิเตอร์ปัจจุบัน</label><input type="number" id="eb-ecurr" placeholder="0" oninput="ebCalcElec()"></div>
+      <div class="fg full"><label>ราคา/หน่วย (บาท)</label><input type="number" id="eb-erate" placeholder="7" oninput="ebCalcElec()"></div>
+    </div>
+    <div class="unit-row"><span style="color:var(--muted);font-size:13px">⚡ รวมค่าไฟ</span><span class="unit-val" style="color:var(--elec)" id="eb-etotal">0.00 บาท</span></div>
+    <div style="display:flex;gap:10px;margin:14px 0 4px">
+      <input type="number" id="eb-fine" placeholder="ค่าปรับ (บาท)" oninput="ebUpdateGrand()" style="flex:1">
+      <input type="text" id="eb-fine-reason" placeholder="หมายเหตุค่าปรับ" style="flex:1.5">
+    </div>
+    <div class="grand"><span style="font-family:'Prompt',sans-serif;font-weight:700">💰 รวมทั้งสิ้น</span><span class="grand-amt" id="eb-grand">0.00 บาท</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px">หมายเหตุ: การแก้ยอดจะคำนวณสถานะบิลใหม่โดยเทียบกับยอดที่ยืนยันแล้ว (ถ้ามี)</div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('editBillOverlay')">ยกเลิก</button>
+      <button class="btn btn-primary" id="eb-save-btn" onclick="saveEditBill()">💾 บันทึกการแก้ไข</button>
     </div>
   </div>
 </div>
@@ -1150,13 +1185,28 @@ async function saveTenantForm() {
 }
 
 async function deleteTenant(id) {
-  if(!confirm('ลบผู้เช่านี้? ข้อมูลบิลที่เกี่ยวข้องจะหายด้วย')) return;
+  if(!confirm('ลบผู้เช่านี้? ประวัติบิลของห้องนี้จะยังถูกเก็บไว้ (ไม่ถูกลบ) แต่จะไม่ผูกกับผู้เช่าคนนี้อีกต่อไป')) return;
+
+  // Detach bills from this tenant BEFORE deleting the tenant row.
+  // This preserves bill history (room/tenant_name/amounts are already snapshotted
+  // on each bill row) and also protects against an ON DELETE CASCADE foreign key
+  // wiping out bills automatically when the tenant row is removed.
+  const{error:detachErr}=await sb.from('bills').update({tenant_id:null}).eq('tenant_id',id);
+  if(detachErr){
+    showAlert('ลบไม่ได้: แยกบิลออกจากผู้เช่าไม่สำเร็จ ('+detachErr.message+') — ถ้า tenant_id ใน bills ตั้งเป็น NOT NULL ต้องแก้ schema ให้อนุญาต NULL ก่อน','danger');
+    return;
+  }
+
   const{error}=await sb.from('tenants').delete().eq('id',id);
-  if(error){showAlert('ลบไม่ได้: '+error.message,'danger');return;}
+  if(error){
+    showAlert('ลบไม่ได้: '+error.message,'danger');
+    return;
+  }
   cache.del('tenants','bills');
+  cache.monthLabels=null;
   closeModal('tenantDetailOverlay');
   loadTenants(); loadTenantDropdown();
-  showAlert('ลบผู้เช่าแล้ว','ok');
+  showAlert('ลบผู้เช่าแล้ว (ประวัติบิลยังอยู่ครบ)','ok');
 }
 
 async function openTenantDetail(tenantId) {
@@ -1370,7 +1420,144 @@ async function openBillDetail(billId) {
     });
   }
   document.getElementById('bd-body').innerHTML=parts.join('');
+  document.getElementById('bd-edit-btn').onclick=()=>openEditBill(billId);
+  document.getElementById('bd-delete-btn').onclick=()=>deleteBill(billId);
   openModal('billDetailOverlay');
+}
+
+// ── EDIT BILL ──
+let activeEditBillId = null;
+async function openEditBill(billId) {
+  const { data: b, error } = await sb.from('bills').select('*').eq('id', billId).single();
+  if (error || !b) { showAlert('โหลดบิลไม่ได้', 'danger'); return; }
+  activeEditBillId = billId;
+
+  document.getElementById('eb-sub').textContent = `ห้อง ${b.room} — ${b.tenant_name} — เดือน ${b.month_label}`;
+  document.getElementById('eb-rent').value = b.rent || 0;
+
+  // Reconstruct prev meter reading from stored current reading and units used
+  const wprev = Math.max(0, (b.meter_wcurr || 0) - (b.water_units || 0));
+  const eprev = Math.max(0, (b.meter_ecurr || 0) - (b.elec_units || 0));
+  document.getElementById('eb-wprev').value = wprev;
+  document.getElementById('eb-wcurr').value = b.meter_wcurr || 0;
+  document.getElementById('eb-eprev').value = eprev;
+  document.getElementById('eb-ecurr').value = b.meter_ecurr || 0;
+
+  // Reconstruct the rate actually used; fall back to configured default if units were 0
+  const rates = _ls.getRateSettings();
+  const wrate = (b.water_units > 0) ? (b.water / b.water_units) : (rates.wrate || 18);
+  const erate = (b.elec_units > 0) ? (b.elec / b.elec_units) : (rates.erate || 7);
+  document.getElementById('eb-wrate').value = Math.round(wrate * 100) / 100;
+  document.getElementById('eb-erate').value = Math.round(erate * 100) / 100;
+
+  document.getElementById('eb-fine').value = b.fine || 0;
+  document.getElementById('eb-fine-reason').value = b.fine_reason || '';
+
+  ebCalcWater(); ebCalcElec(); ebUpdateGrand();
+
+  closeModal('billDetailOverlay');
+  openModal('editBillOverlay');
+}
+
+const ebgv = id => parseFloat(document.getElementById(id).value) || 0;
+function ebCalcWater() {
+  const u = Math.max(0, ebgv('eb-wcurr') - ebgv('eb-wprev'));
+  const raw = u * ebgv('eb-wrate');
+  const t = raw > 0 ? Math.max(100, raw) : 0;
+  document.getElementById('eb-wtotal').textContent = fmt(t) + ' บาท';
+  ebUpdateGrand();
+}
+function ebCalcElec() {
+  const u = Math.max(0, ebgv('eb-ecurr') - ebgv('eb-eprev'));
+  const raw = u * ebgv('eb-erate');
+  const t = raw > 0 ? Math.max(100, raw) : 0;
+  document.getElementById('eb-etotal').textContent = fmt(t) + ' บาท';
+  ebUpdateGrand();
+}
+const ebGetWater = () => { const u = Math.max(0, ebgv('eb-wcurr') - ebgv('eb-wprev')); const raw = u * ebgv('eb-wrate'); return raw > 0 ? Math.max(100, raw) : 0; };
+const ebGetElec  = () => { const u = Math.max(0, ebgv('eb-ecurr') - ebgv('eb-eprev')); const raw = u * ebgv('eb-erate'); return raw > 0 ? Math.max(100, raw) : 0; };
+function ebUpdateGrand() {
+  const r = ebgv('eb-rent'), w = ebGetWater(), e = ebGetElec(), f = ebgv('eb-fine');
+  document.getElementById('eb-grand').textContent = fmt(r + w + e + f) + ' บาท';
+}
+
+async function saveEditBill() {
+  const btn = document.getElementById('eb-save-btn');
+  if (btn.disabled || !activeEditBillId) return;
+
+  const r = ebgv('eb-rent'), w = ebGetWater(), e = ebGetElec(), f = ebgv('eb-fine');
+  if (r <= 0 && w <= 0 && e <= 0) {
+    showAlert('กรุณากรอกค่าห้อง หรือค่าน้ำ หรือค่าไฟอย่างน้อย 1 รายการ', 'warn');
+    return;
+  }
+
+  btn.disabled = true;
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '⏳ กำลังบันทึก...';
+
+  try {
+    const update = {
+      rent: r, water: w, elec: e, fine: f || 0,
+      fine_reason: document.getElementById('eb-fine-reason').value.trim(),
+      total: r + w + e + f,
+      water_units: Math.max(0, ebgv('eb-wcurr') - ebgv('eb-wprev')),
+      elec_units: Math.max(0, ebgv('eb-ecurr') - ebgv('eb-eprev')),
+      meter_wcurr: ebgv('eb-wcurr'),
+      meter_ecurr: ebgv('eb-ecurr'),
+    };
+    const { error } = await sb.from('bills').update(update).eq('id', activeEditBillId);
+    if (error) throw error;
+
+    // Total may have changed — recompute status against verified payments so far
+    await recalcBillStatus(activeEditBillId);
+
+    cache.del('bills', 'payments', 'notifications');
+    cache.monthLabels = null;
+    showAlert('✅ บันทึกการแก้ไขบิลสำเร็จ', 'ok');
+    closeModal('editBillOverlay');
+
+    loadDashboard();
+    if (document.getElementById('page-roomgrid').classList.contains('active')) loadRoomGrid();
+    if (document.getElementById('page-bills').classList.contains('active')) loadBills();
+    if (document.getElementById('page-payments').classList.contains('active')) loadPayments();
+    openBillDetail(activeEditBillId);
+  } catch (err) {
+    showAlert('เกิดข้อผิดพลาด: ' + (err.message || err), 'danger');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+// ── DELETE BILL ──
+async function deleteBill(billId) {
+  if (!confirm('ลบบิลนี้? หลักฐานการชำระเงินและการแจ้งเตือนที่เกี่ยวข้องกับบิลนี้จะถูกลบไปด้วย และไม่สามารถกู้คืนได้')) return;
+  const btn = document.getElementById('bd-delete-btn');
+  if (btn) { btn.disabled = true; }
+  try {
+    // Clean up dependent rows first so nothing is left pointing at a bill that no longer exists
+    const { error: payErr } = await sb.from('payments').delete().eq('bill_id', billId);
+    if (payErr) throw payErr;
+    const { error: notifErr } = await sb.from('notifications').delete().eq('bill_id', billId);
+    if (notifErr) console.warn('Notification cleanup warning:', notifErr.message);
+
+    const { error } = await sb.from('bills').delete().eq('id', billId);
+    if (error) throw error;
+
+    cache.del('bills', 'payments', 'notifications');
+    cache.monthLabels = null;
+    closeModal('billDetailOverlay');
+    showAlert('🗑 ลบบิลแล้ว', 'ok');
+
+    loadDashboard();
+    if (document.getElementById('page-roomgrid').classList.contains('active')) loadRoomGrid();
+    if (document.getElementById('page-bills').classList.contains('active')) loadBills();
+    if (document.getElementById('page-payments').classList.contains('active')) loadPayments();
+  } catch (err) {
+    showAlert('ลบบิลไม่ได้: ' + (err.message || err), 'danger');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 let activeVerifyPayId=null,activeVerifyBillId=null,activeVerifyClaimedAmt=0;
