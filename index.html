@@ -861,7 +861,7 @@ function getMonthLabel() {
 function calcWater() {
   const u=Math.max(0,gv('cb-wcurr')-gv('cb-wprev'));
   const raw = u*gv('cb-wrate');
-  const t = raw > 0 ? Math.max(100, raw) : 0;  // minimum 100 baht if usage > 0
+  const t = Math.max(100, raw);  // minimum 100 baht always
   document.getElementById('cb-wunits').textContent=u.toLocaleString()+' หน่วย';
   document.getElementById('cb-wtotal').textContent=fmt(t)+' บาท';
   updateGrand();
@@ -869,13 +869,13 @@ function calcWater() {
 function calcElec() {
   const u=Math.max(0,gv('cb-ecurr')-gv('cb-eprev'));
   const raw = u*gv('cb-erate');
-  const t = raw > 0 ? Math.max(100, raw) : 0;  // minimum 100 baht if usage > 0
+  const t = Math.max(100, raw);  // minimum 100 baht always
   document.getElementById('cb-eunits').textContent=u.toLocaleString()+' หน่วย';
   document.getElementById('cb-etotal').textContent=fmt(t)+' บาท';
   updateGrand();
 }
-const getWater=()=>{const u=Math.max(0,gv('cb-wcurr')-gv('cb-wprev')); const raw=u*gv('cb-wrate'); return raw>0?Math.max(100,raw):0;};
-const getElec =()=>{const u=Math.max(0,gv('cb-ecurr')-gv('cb-eprev')); const raw=u*gv('cb-erate'); return raw>0?Math.max(100,raw):0;};
+const getWater=()=>{const u=Math.max(0,gv('cb-wcurr')-gv('cb-wprev')); const raw=u*gv('cb-wrate'); return Math.max(100,raw);};
+const getElec =()=>{const u=Math.max(0,gv('cb-ecurr')-gv('cb-eprev')); const raw=u*gv('cb-erate'); return Math.max(100,raw);};
 function updateGrand() {
   const r=gv('cb-rent'),w=getWater(),e=getElec(),f=gv('cb-fine');
   document.getElementById('s-rent').textContent =fmt(r)+' บาท';
@@ -1463,19 +1463,19 @@ const ebgv = id => parseFloat(document.getElementById(id).value) || 0;
 function ebCalcWater() {
   const u = Math.max(0, ebgv('eb-wcurr') - ebgv('eb-wprev'));
   const raw = u * ebgv('eb-wrate');
-  const t = raw > 0 ? Math.max(100, raw) : 0;
+  const t = Math.max(100, raw);  // minimum 100 baht always
   document.getElementById('eb-wtotal').textContent = fmt(t) + ' บาท';
   ebUpdateGrand();
 }
 function ebCalcElec() {
   const u = Math.max(0, ebgv('eb-ecurr') - ebgv('eb-eprev'));
   const raw = u * ebgv('eb-erate');
-  const t = raw > 0 ? Math.max(100, raw) : 0;
+  const t = Math.max(100, raw);  // minimum 100 baht always
   document.getElementById('eb-etotal').textContent = fmt(t) + ' บาท';
   ebUpdateGrand();
 }
-const ebGetWater = () => { const u = Math.max(0, ebgv('eb-wcurr') - ebgv('eb-wprev')); const raw = u * ebgv('eb-wrate'); return raw > 0 ? Math.max(100, raw) : 0; };
-const ebGetElec  = () => { const u = Math.max(0, ebgv('eb-ecurr') - ebgv('eb-eprev')); const raw = u * ebgv('eb-erate'); return raw > 0 ? Math.max(100, raw) : 0; };
+const ebGetWater = () => { const u = Math.max(0, ebgv('eb-wcurr') - ebgv('eb-wprev')); const raw = u * ebgv('eb-wrate'); return Math.max(100, raw); };
+const ebGetElec  = () => { const u = Math.max(0, ebgv('eb-ecurr') - ebgv('eb-eprev')); const raw = u * ebgv('eb-erate'); return Math.max(100, raw); };
 function ebUpdateGrand() {
   const r = ebgv('eb-rent'), w = ebGetWater(), e = ebGetElec(), f = ebgv('eb-fine');
   document.getElementById('eb-grand').textContent = fmt(r + w + e + f) + ' บาท';
