@@ -468,6 +468,7 @@ input,select,textarea{font-size:16px}
     <div id="bd-body"></div>
     <div class="modal-btns">
       <button class="btn btn-ghost" onclick="closeModal('billDetailOverlay')">ปิด</button>
+      <button class="btn btn-success" id="bd-pay-btn" style="display:none">💵 รับชำระ</button>
       <button class="btn btn-primary" id="bd-edit-btn">✏️ แก้ไข</button>
       <button class="btn btn-danger" id="bd-delete-btn">🗑 ลบบิล</button>
     </div>
@@ -544,6 +545,45 @@ input,select,textarea{font-size:16px}
       <button class="btn btn-ghost" onclick="closeModal('verifyOverlay')">ยกเลิก</button>
       <button class="btn btn-danger" onclick="doVerify(false)">❌ ปฏิเสธ</button>
       <button class="btn btn-success" id="vr-confirm-btn" onclick="doVerify(true)">✅ ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Admin Manual Payment -->
+<div class="overlay" id="manualPayOverlay">
+  <div class="modal">
+    <h2>💵 รับชำระเงิน</h2>
+    <div class="modal-sub" id="mp-sub"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <div style="background:var(--surf2);border-radius:10px;padding:12px">
+        <div style="font-size:11px;color:var(--muted)">ยอดรวม</div>
+        <div style="font-family:'Prompt',sans-serif;font-size:17px;font-weight:800;color:var(--elec)" id="mp-total">0.00 บาท</div>
+      </div>
+      <div style="background:var(--surf2);border-radius:10px;padding:12px">
+        <div style="font-size:11px;color:var(--muted)">ยังค้างชำระ</div>
+        <div style="font-family:'Prompt',sans-serif;font-size:17px;font-weight:800;color:var(--danger)" id="mp-remaining">0.00 บาท</div>
+      </div>
+    </div>
+    <div id="mp-pending-warn" style="display:none;font-size:12px;color:var(--warn);background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.3);border-radius:9px;padding:9px 12px;margin-bottom:14px"></div>
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <button class="btn btn-ghost" style="flex:1" onclick="setManualPayFull()">💰 ชำระทั้งหมด</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="setManualPayPartial()">💧 แบ่งชำระ</button>
+    </div>
+    <div class="fgrid">
+      <div class="fg"><label>จำนวนเงินที่รับ (บาท)</label><input type="number" id="mp-amount" placeholder="กรอกจำนวนเงิน" oninput="updateManualPayLeft()"></div>
+      <div class="fg"><label>ช่องทาง</label>
+        <select id="mp-method">
+          <option value="เงินสด">เงินสด</option>
+          <option value="โอนเงิน">โอนเงิน</option>
+          <option value="อื่นๆ">อื่นๆ</option>
+        </select>
+      </div>
+      <div class="fg full"><label>หมายเหตุ (ถ้ามี)</label><input type="text" id="mp-note" placeholder="เช่น ผู้เช่าจ่ายเงินสดที่สำนักงาน"></div>
+    </div>
+    <div class="unit-row"><span style="color:var(--muted);font-size:13px">คงเหลือหลังชำระครั้งนี้</span><span class="unit-val" id="mp-left">0.00 บาท</span></div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('manualPayOverlay')">ยกเลิก</button>
+      <button class="btn btn-success" id="mp-save-btn" onclick="saveManualPayment()">✅ บันทึกการชำระ</button>
     </div>
   </div>
 </div>
@@ -1371,7 +1411,10 @@ function renderBillsTable(data) {
     <td>${esc(b.tenant_name)}</td><td>${esc(b.month_label)}</td>
     <td style="font-family:'Prompt',sans-serif;font-weight:700">${fmt(b.total)} บาท</td>
     <td>${statusPill(b.status)}</td>
-    <td><button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openBillDetail('${esc(b.id)}')">🔍 ดู</button></td>
+    <td style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openBillDetail('${esc(b.id)}')">🔍 ดู</button>
+      ${b.status!=='confirmed'?`<button class="btn btn-success" style="padding:5px 10px;font-size:11px" onclick="openManualPay('${esc(b.id)}')">💵 ชำระ</button>`:''}
+    </td>
   </tr>`).join('');
 }
 
@@ -1420,6 +1463,9 @@ async function openBillDetail(billId) {
     });
   }
   document.getElementById('bd-body').innerHTML=parts.join('');
+  const payBtn=document.getElementById('bd-pay-btn');
+  payBtn.style.display=remaining>0?'':'none';
+  payBtn.onclick=()=>openManualPay(billId);
   document.getElementById('bd-edit-btn').onclick=()=>openEditBill(billId);
   document.getElementById('bd-delete-btn').onclick=()=>deleteBill(billId);
   openModal('billDetailOverlay');
@@ -1606,6 +1652,93 @@ async function verifyPayment(payId,billId,approve) {
   cache.del('bills','payments','notifications');
   loadDashboard();
   openBillDetail(billId);
+}
+
+// ── ADMIN MANUAL PAYMENT (ชำระทั้งหมด / แบ่งชำระ) ──
+let activeManualPayBillId=null, activeManualPayRemaining=0;
+async function openManualPay(billId) {
+  const[{data:b,error:bErr},{data:pays}]=await Promise.all([
+    sb.from('bills').select('id,room,tenant_name,month_label,total').eq('id',billId).single(),
+    sb.from('payments').select('status,amount').eq('bill_id',billId)
+  ]);
+  if(bErr||!b) { showAlert('โหลดบิลไม่ได้','danger'); return; }
+  const paidTotal=(pays||[]).filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
+  const remaining=Math.round(((b.total||0)-paidTotal)*100)/100;
+  if(remaining<=0) { showAlert('บิลนี้ชำระครบแล้ว','ok'); return; }
+
+  activeManualPayBillId=billId;
+  activeManualPayRemaining=remaining;
+  document.getElementById('mp-sub').textContent=`ห้อง ${b.room} — ${b.tenant_name} — เดือน ${b.month_label}`;
+  document.getElementById('mp-total').textContent=fmt(b.total)+' บาท';
+  document.getElementById('mp-remaining').textContent=fmt(remaining)+' บาท';
+
+  // Warn if the tenant already sent a slip that is waiting for review — avoid double counting
+  const pendingSlips=(pays||[]).filter(p=>p.status==='pending_verify');
+  const warn=document.getElementById('mp-pending-warn');
+  if(pendingSlips.length) {
+    const amt=pendingSlips.reduce((s,p)=>s+(p.amount||0),0);
+    warn.textContent=`⚠️ มีสลิปรอตรวจสอบ ${pendingSlips.length} รายการ (${fmt(amt)} บาท) — ตรวจสอบสลิปก่อนเพื่อไม่ให้รับเงินซ้ำ`;
+    warn.style.display='block';
+  } else {
+    warn.style.display='none';
+  }
+
+  document.getElementById('mp-amount').value=remaining;
+  document.getElementById('mp-method').value='เงินสด';
+  document.getElementById('mp-note').value='';
+  document.getElementById('mp-save-btn').disabled=false;
+  updateManualPayLeft();
+  closeModal('billDetailOverlay');
+  openModal('manualPayOverlay');
+}
+const setManualPayFull=()=>{document.getElementById('mp-amount').value=activeManualPayRemaining;updateManualPayLeft();};
+const setManualPayPartial=()=>{const el=document.getElementById('mp-amount');el.value='';updateManualPayLeft();el.focus();};
+function updateManualPayLeft() {
+  const left=activeManualPayRemaining-gv('mp-amount');
+  const el=document.getElementById('mp-left');
+  el.textContent=fmt(Math.max(0,left))+' บาท';
+  el.style.color=left<0?'var(--danger)':left===0?'var(--ok)':'var(--elec)';
+}
+
+async function saveManualPayment() {
+  const btn=document.getElementById('mp-save-btn');
+  if(btn.disabled||!activeManualPayBillId) return;
+  const amt=Math.round(gv('mp-amount')*100)/100;
+  if(amt<=0) { showAlert('กรุณากรอกจำนวนเงิน','warn'); return; }
+  if(amt>activeManualPayRemaining) { showAlert(`ยอดเกินยอดค้างชำระ (${fmt(activeManualPayRemaining)} บาท)`,'warn'); return; }
+
+  btn.disabled=true;
+  const originalText=btn.innerHTML;
+  btn.innerHTML='⏳ กำลังบันทึก...';
+  const billId=activeManualPayBillId;
+  try {
+    const method=document.getElementById('mp-method').value;
+    const extra=document.getElementById('mp-note').value.trim();
+    const now=new Date().toISOString();
+    const{error}=await sb.from('payments').insert({
+      bill_id:billId, amount:amt, status:'verified',
+      note:`[แอดมินบันทึก • ${method}]${extra?' '+extra:''}`,
+      paid_at:now, verified_at:now
+    });
+    if(error) throw error;
+    await recalcBillStatus(billId);
+
+    cache.del('bills','payments','notifications');
+    cache.monthLabels=null;
+    closeModal('manualPayOverlay');
+    showAlert(amt>=activeManualPayRemaining?`✅ ชำระครบแล้ว ${fmt(amt)} บาท`:`✅ บันทึกการชำระ ${fmt(amt)} บาท — คงเหลือ ${fmt(activeManualPayRemaining-amt)} บาท`,'ok');
+
+    loadDashboard();
+    if(document.getElementById('page-roomgrid').classList.contains('active')) loadRoomGrid();
+    if(document.getElementById('page-bills').classList.contains('active')) loadBills();
+    if(document.getElementById('page-payments').classList.contains('active')) loadPayments();
+    openBillDetail(billId);
+  } catch(err) {
+    showAlert('เกิดข้อผิดพลาด: '+(err.message||err),'danger');
+  } finally {
+    btn.disabled=false;
+    btn.innerHTML=originalText;
+  }
 }
 
 async function recalcBillStatus(billId) {
