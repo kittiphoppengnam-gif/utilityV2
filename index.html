@@ -647,9 +647,15 @@ let editingTenantId = null;  // null = add mode, id string = edit mode
 const _nf = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2 });
 const fmt  = n => _nf.format(parseFloat(n) || 0);
 const gv   = id => parseFloat(document.getElementById(id).value) || 0;
+const r2   = n  => Math.round((parseFloat(n) || 0) * 100) / 100;  // round to satang
+// True when an RPC call failed only because the SQL function hasn't been created yet
+const rpcMissing = err => !!err && (err.code === 'PGRST202' || err.code === '42883');
 const esc  = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
 const MSHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+// "ต.ค. 2568" → sortable number, so months order by the bill's month — not by when the bill was created
+const monthKey = l => { const [m, y] = String(l || '').split(' '); return (parseInt(y) || 0) * 12 + MSHORT.indexOf(m); };
+const sortMonthLabels = labels => labels.sort((a, b) => monthKey(b) - monthKey(a));  // newest first
 
 // Validate URLs to prevent javascript: scheme XSS
 const safeUrl = u => {
@@ -682,7 +688,7 @@ const cache = {
 async function getMonthLabels(force = false) {
   if (!force && cache.monthLabels) return cache.monthLabels;
   const { data } = await sb.from('bills').select('month_label').order('issued_at', { ascending: false });
-  const labels = [...new Set((data||[]).map(b => b.month_label).filter(Boolean))];
+  const labels = sortMonthLabels([...new Set((data||[]).map(b => b.month_label).filter(Boolean))]);
   cache.monthLabels = labels;
   return labels;
 }
@@ -772,7 +778,7 @@ function boot() {
   loadRateSettings();
 
   setTimeout(() => {
-    Promise.all([loadDashboard(), loadNotifications()]).catch(console.error);
+    Promise.all([loadDashboard(), loadNotifications(), loadPayBadge()]).catch(console.error);
   }, 50);
 }
 
@@ -886,7 +892,8 @@ function initCreateBill() {
   const btn = document.getElementById('cb-submit-btn');
   if(btn){ btn.disabled=false; btn.textContent='✅ สร้างและส่งบิล'; }
   calcWater(); calcElec(); updateGrand();
-  loadTenantDropdown();
+  // The dropdown keeps the previously selected tenant — refill their rent/meters since the form was just cleared
+  loadTenantDropdown().then(()=>{ if(document.getElementById('cb-tenant').value) onTenantSelect(); });
 }
 
 function getMonthLabel() {
@@ -914,8 +921,8 @@ function calcElec() {
   document.getElementById('cb-etotal').textContent=fmt(t)+' บาท';
   updateGrand();
 }
-const getWater=()=>{const u=Math.max(0,gv('cb-wcurr')-gv('cb-wprev')); const raw=u*gv('cb-wrate'); return Math.max(100,raw);};
-const getElec =()=>{const u=Math.max(0,gv('cb-ecurr')-gv('cb-eprev')); const raw=u*gv('cb-erate'); return Math.max(100,raw);};
+const getWater=()=>{const u=Math.max(0,gv('cb-wcurr')-gv('cb-wprev')); const raw=u*gv('cb-wrate'); return r2(Math.max(100,raw));};
+const getElec =()=>{const u=Math.max(0,gv('cb-ecurr')-gv('cb-eprev')); const raw=u*gv('cb-erate'); return r2(Math.max(100,raw));};
 function updateGrand() {
   const r=gv('cb-rent'),w=getWater(),e=getElec(),f=gv('cb-fine');
   document.getElementById('s-rent').textContent =fmt(r)+' บาท';
@@ -989,11 +996,11 @@ async function loadRoomRentList() {
   `).join('');
 }
 
-let _roomRentTimer;
+const _roomRentTimers = {};  // one debounce timer per room, so typing in another room doesn't cancel this save
 function saveRoomRent(inputEl) {
-  clearTimeout(_roomRentTimer);
-  _roomRentTimer = setTimeout(() => {
-    const tenantId = inputEl.dataset.tenantId;
+  const tenantId = inputEl.dataset.tenantId;
+  clearTimeout(_roomRentTimers[tenantId]);
+  _roomRentTimers[tenantId] = setTimeout(() => {
     const val = parseFloat(inputEl.value);
     const rentMap = _ls.getRentMap();
     if(!val || val <= 0) {
@@ -1028,9 +1035,26 @@ function saveDormSettings() {
     signer: document.getElementById('dorm-signer').value.trim()
   }),400);
 }
-function handleQrUpload(e) {
+async function handleQrUpload(e) {
   const f=e.target.files[0]; if(!f) return;
   if(f.size>2*1024*1024){showAlert('รูปใหญ่เกิน 2MB','warn');return;}
+
+  // Preferred: upload once to Supabase Storage and store only the public URL
+  // (qrBase64 then holds a short https URL instead of the whole image, so each bill row stays small)
+  if(sb) {
+    const ext=((f.name.split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,''))||'png';
+    const path=`qr-${Date.now()}.${ext}`;
+    const{error:upErr}=await sb.storage.from('payment-qr').upload(path,f,{contentType:f.type||'image/png',upsert:false});
+    if(!upErr) {
+      qrBase64=sb.storage.from('payment-qr').getPublicUrl(path).data.publicUrl;
+      try { localStorage.setItem('pay_qr',qrBase64); } catch(err) {}
+      showQrPrev(qrBase64);
+      showAlert('✅ อัปโหลด QR แล้ว','ok');
+      return;
+    }
+    console.warn('QR upload to storage failed — falling back to base64:', upErr.message);
+  }
+
   const r=new FileReader();
   r.onload=ev=>{
     qrBase64=ev.target.result;
@@ -1099,20 +1123,28 @@ async function onTenantSelect() {
   } else {
     rentInput.value = '';  // not set in settings — let admin fill
   }
-  updateGrand();
+  // Clear previous tenant's meter readings so they don't carry over
+  document.getElementById('cb-wprev').value='';
+  document.getElementById('cb-eprev').value='';
+  calcWater(); calcElec();
 
   if(!sb) return;
   const{data:meterBill}=await sb.from('bills')
     .select('meter_wcurr,meter_ecurr,rent')
     .eq('tenant_id',t.id)
     .order('issued_at',{ascending:false})
-    .limit(1);
-  if(meterBill?.length && meterBill[0].meter_wcurr!=null) {
-    document.getElementById('cb-wprev').value=meterBill[0].meter_wcurr;
+    .limit(6);
+  // Ignore stale response if admin already picked another tenant
+  if(sel.value!==String(t.id)) return;
+  // Use the latest real reading — skip bills with no meter (null, or 0 saved by older versions)
+  const lastW=meterBill?.find(b=>b.meter_wcurr>0);
+  const lastE=meterBill?.find(b=>b.meter_ecurr>0);
+  if(lastW) {
+    document.getElementById('cb-wprev').value=lastW.meter_wcurr;
     calcWater();
   }
-  if(meterBill?.length && meterBill[0].meter_ecurr!=null) {
-    document.getElementById('cb-eprev').value=meterBill[0].meter_ecurr;
+  if(lastE) {
+    document.getElementById('cb-eprev').value=lastE.meter_ecurr;
     calcElec();
   }
 }
@@ -1196,10 +1228,11 @@ async function saveTenantForm() {
         .eq('id', editingTenantId);
       if (error) throw error;
 
-      // Also update room/name on existing bills so they stay in sync
+      // Sync room/name only on bills still open — confirmed bills are history and keep their snapshot
       const { error: billErr } = await sb.from('bills')
         .update({ room, tenant_name: name })
-        .eq('tenant_id', editingTenantId);
+        .eq('tenant_id', editingTenantId)
+        .neq('status', 'confirmed');
       if (billErr) console.warn('Bill sync warning:', billErr.message);
 
       showAlert('✅ บันทึกการแก้ไขสำเร็จ', 'ok');
@@ -1231,16 +1264,33 @@ async function deleteTenant(id) {
   // This preserves bill history (room/tenant_name/amounts are already snapshotted
   // on each bill row) and also protects against an ON DELETE CASCADE foreign key
   // wiping out bills automatically when the tenant row is removed.
-  const{error:detachErr}=await sb.from('bills').update({tenant_id:null}).eq('tenant_id',id);
-  if(detachErr){
-    showAlert('ลบไม่ได้: แยกบิลออกจากผู้เช่าไม่สำเร็จ ('+detachErr.message+') — ถ้า tenant_id ใน bills ตั้งเป็น NOT NULL ต้องแก้ schema ให้อนุญาต NULL ก่อน','danger');
+  // Preferred: one database transaction (see supabase-fix.sql) — detach + delete succeed or fail together
+  const{error:rpcErr}=await sb.rpc('delete_tenant',{p_tenant_id:id});
+  if(rpcErr&&!rpcMissing(rpcErr)){
+    showAlert('ลบไม่ได้: '+rpcErr.message,'danger');
     return;
   }
+  if(rpcErr){
+    console.warn('delete_tenant RPC not installed — falling back to client-side delete');
+    // Remember which bills get detached so they can be re-linked if the tenant delete fails
+    const{data:linked,error:linkErr}=await sb.from('bills').select('id').eq('tenant_id',id);
+    if(linkErr){ showAlert('ลบไม่ได้: '+linkErr.message,'danger'); return; }
 
-  const{error}=await sb.from('tenants').delete().eq('id',id);
-  if(error){
-    showAlert('ลบไม่ได้: '+error.message,'danger');
-    return;
+    const{error:detachErr}=await sb.from('bills').update({tenant_id:null}).eq('tenant_id',id);
+    if(detachErr){
+      showAlert('ลบไม่ได้: แยกบิลออกจากผู้เช่าไม่สำเร็จ ('+detachErr.message+') — ถ้า tenant_id ใน bills ตั้งเป็น NOT NULL ต้องแก้ schema ให้อนุญาต NULL ก่อน','danger');
+      return;
+    }
+
+    const{error}=await sb.from('tenants').delete().eq('id',id);
+    if(error){
+      if(linked?.length){
+        const{error:relinkErr}=await sb.from('bills').update({tenant_id:id}).in('id',linked.map(b=>b.id));
+        if(relinkErr) console.error('Bill re-link failed:', relinkErr.message, linked);
+      }
+      showAlert('ลบไม่ได้: '+error.message,'danger');
+      return;
+    }
   }
   cache.del('tenants','bills');
   cache.monthLabels=null;
@@ -1309,7 +1359,8 @@ async function submitBill() {
   const tenantId=document.getElementById('cb-tenant').value;
   if(!tenantId){showAlert('กรุณาเลือกผู้เช่า','warn');return;}
   const r=gv('cb-rent'),w=getWater(),e=getElec(),f=gv('cb-fine');
-  if(r<=0&&w<=0&&e<=0){showAlert('กรุณากรอกค่าห้อง หรือค่าน้ำ หรือค่าไฟอย่างน้อย 1 รายการ','warn');return;}
+  // w/e are never below the 100-baht minimum, so check the meter inputs instead
+  if(r<=0&&gv('cb-wcurr')<=0&&gv('cb-ecurr')<=0){showAlert('กรุณากรอกค่าห้อง หรือค่าน้ำ หรือค่าไฟอย่างน้อย 1 รายการ','warn');return;}
 
   // Disable button immediately
   btn.disabled = true;
@@ -1322,9 +1373,10 @@ async function submitBill() {
     const pay=_ls.getPaySettings();
     const monthLabel=getMonthLabel();
 
-    const{data:existing}=await sb.from('bills').select('id')
-      .eq('tenant_id',tenantId).eq('month_label',monthLabel).maybeSingle();
-    if(existing){
+    const{data:existing,error:dupErr}=await sb.from('bills').select('id')
+      .eq('tenant_id',tenantId).eq('month_label',monthLabel).limit(1);
+    if(dupErr) throw dupErr;
+    if(existing?.length){
       showAlert(`⚠️ ห้อง ${t.room} มีบิลเดือน ${monthLabel} อยู่แล้ว`,'warn');
       return;
     }
@@ -1335,11 +1387,12 @@ async function submitBill() {
       tenant_id:tenantId,room:t.room,tenant_name:t.name,month_label:monthLabel,
       rent:r,water:w,elec:e,fine:f||0,
       fine_reason:document.getElementById('cb-fine-reason').value.trim(),
-      total:r+w+e+f,
+      total:r2(r+w+e+f),
       water_units:Math.max(0,gv('cb-wcurr')-gv('cb-wprev')),
       elec_units :Math.max(0,gv('cb-ecurr')-gv('cb-eprev')),
-      meter_wcurr:gv('cb-wcurr'),
-      meter_ecurr:gv('cb-ecurr'),
+      // Blank meter → null (not 0), otherwise next month's "previous reading" would start from 0
+      meter_wcurr:document.getElementById('cb-wcurr').value===''?null:gv('cb-wcurr'),
+      meter_ecurr:document.getElementById('cb-ecurr').value===''?null:gv('cb-ecurr'),
       status:'pending',payment_qr:qrBase64,
       bank_name:pay.bank||'',bank_number:pay.num||'',bank_account_name:pay.name||''
     };
@@ -1361,8 +1414,12 @@ async function submitBill() {
 }
 
 async function populateMonthSelect(sel, currentVal) {
-  if(!sel||sel.options.length>1) return;
+  if(!sel) return;
   const labels=await getMonthLabels();
+  // Rebuild only when the month list changed (e.g. a bill for a new month was created)
+  const existing=[...sel.options].slice(1).map(o=>o.value);
+  if(existing.length===labels.length&&labels.every((l,i)=>l===existing[i])) return;
+  sel.length=1;  // keep the first "all/latest" option
   const frag=document.createDocumentFragment();
   labels.forEach(l=>{const o=new Option(l,l);frag.appendChild(o);});
   sel.appendChild(frag);
@@ -1426,7 +1483,7 @@ async function openBillDetail(billId) {
   ]);
   if(bErr||!b) { showAlert('โหลดบิลไม่ได้','danger'); return; }
   const paidTotal=(pays||[]).filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
-  const remaining=(b.total||0)-paidTotal;
+  const remaining=r2((b.total||0)-paidTotal);
   document.getElementById('bd-title').textContent=`ห้อง ${b.room} — ${b.tenant_name}`;
   document.getElementById('bd-sub').textContent  =`เดือน ${b.month_label}`;
   const parts=[`
@@ -1458,7 +1515,7 @@ async function openBillDetail(billId) {
       ${p.status==='pending_verify'?`<button class="btn btn-primary" style="padding:4px 10px;font-size:11px" onclick="openVerifyModal('${esc(p.id)}','${esc(billId)}',${parseFloat(p.amount)||0})">🔍 ตรวจสอบ</button>`:''}
       ${p.status==='verified'?`<button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="verifyPayment('${esc(p.id)}','${esc(billId)}',false)">ยกเลิก</button>`:''}
     </div></div>
-    ${slipUrl?`<img src="${slipUrl}" class="slip-img" style="max-height:200px;object-fit:contain" loading="lazy">`:''}
+    ${slipUrl?`<img src="${esc(slipUrl)}" class="slip-img" style="max-height:200px;object-fit:contain" loading="lazy">`:''}
     </div>`);
     });
   }
@@ -1473,26 +1530,33 @@ async function openBillDetail(billId) {
 
 // ── EDIT BILL ──
 let activeEditBillId = null;
+let ebOrigBill = null;
+// Bill has no stored meter reading and admin hasn't typed one — keep the original amount instead of recalculating
+const ebKeepWater = () => ebOrigBill?.meter_wcurr == null && document.getElementById('eb-wcurr').value === '';
+const ebKeepElec  = () => ebOrigBill?.meter_ecurr == null && document.getElementById('eb-ecurr').value === '';
 async function openEditBill(billId) {
   const { data: b, error } = await sb.from('bills').select('*').eq('id', billId).single();
   if (error || !b) { showAlert('โหลดบิลไม่ได้', 'danger'); return; }
   activeEditBillId = billId;
+  ebOrigBill = b;
 
   document.getElementById('eb-sub').textContent = `ห้อง ${b.room} — ${b.tenant_name} — เดือน ${b.month_label}`;
   document.getElementById('eb-rent').value = b.rent || 0;
 
   // Reconstruct prev meter reading from stored current reading and units used
+  // (left blank when the bill has no stored reading)
   const wprev = Math.max(0, (b.meter_wcurr || 0) - (b.water_units || 0));
   const eprev = Math.max(0, (b.meter_ecurr || 0) - (b.elec_units || 0));
-  document.getElementById('eb-wprev').value = wprev;
-  document.getElementById('eb-wcurr').value = b.meter_wcurr || 0;
-  document.getElementById('eb-eprev').value = eprev;
-  document.getElementById('eb-ecurr').value = b.meter_ecurr || 0;
+  document.getElementById('eb-wprev').value = b.meter_wcurr == null ? '' : wprev;
+  document.getElementById('eb-wcurr').value = b.meter_wcurr == null ? '' : b.meter_wcurr;
+  document.getElementById('eb-eprev').value = b.meter_ecurr == null ? '' : eprev;
+  document.getElementById('eb-ecurr').value = b.meter_ecurr == null ? '' : b.meter_ecurr;
 
   // Reconstruct the rate actually used; fall back to configured default if units were 0
+  // or the 100-baht minimum was applied (amount / units would not be the real rate then)
   const rates = _ls.getRateSettings();
-  const wrate = (b.water_units > 0) ? (b.water / b.water_units) : (rates.wrate || 18);
-  const erate = (b.elec_units > 0) ? (b.elec / b.elec_units) : (rates.erate || 7);
+  const wrate = (b.water_units > 0 && b.water > 100) ? (b.water / b.water_units) : (rates.wrate || 18);
+  const erate = (b.elec_units > 0 && b.elec > 100) ? (b.elec / b.elec_units) : (rates.erate || 7);
   document.getElementById('eb-wrate').value = Math.round(wrate * 100) / 100;
   document.getElementById('eb-erate').value = Math.round(erate * 100) / 100;
 
@@ -1507,21 +1571,17 @@ async function openEditBill(billId) {
 
 const ebgv = id => parseFloat(document.getElementById(id).value) || 0;
 function ebCalcWater() {
-  const u = Math.max(0, ebgv('eb-wcurr') - ebgv('eb-wprev'));
-  const raw = u * ebgv('eb-wrate');
-  const t = Math.max(100, raw);  // minimum 100 baht always
+  const t = ebGetWater();  // minimum 100 baht always (unless keeping the original amount)
   document.getElementById('eb-wtotal').textContent = fmt(t) + ' บาท';
   ebUpdateGrand();
 }
 function ebCalcElec() {
-  const u = Math.max(0, ebgv('eb-ecurr') - ebgv('eb-eprev'));
-  const raw = u * ebgv('eb-erate');
-  const t = Math.max(100, raw);  // minimum 100 baht always
+  const t = ebGetElec();  // minimum 100 baht always (unless keeping the original amount)
   document.getElementById('eb-etotal').textContent = fmt(t) + ' บาท';
   ebUpdateGrand();
 }
-const ebGetWater = () => { const u = Math.max(0, ebgv('eb-wcurr') - ebgv('eb-wprev')); const raw = u * ebgv('eb-wrate'); return Math.max(100, raw); };
-const ebGetElec  = () => { const u = Math.max(0, ebgv('eb-ecurr') - ebgv('eb-eprev')); const raw = u * ebgv('eb-erate'); return Math.max(100, raw); };
+const ebGetWater = () => { if (ebKeepWater()) return r2(ebOrigBill.water); const u = Math.max(0, ebgv('eb-wcurr') - ebgv('eb-wprev')); const raw = u * ebgv('eb-wrate'); return r2(Math.max(100, raw)); };
+const ebGetElec  = () => { if (ebKeepElec())  return r2(ebOrigBill.elec);  const u = Math.max(0, ebgv('eb-ecurr') - ebgv('eb-eprev')); const raw = u * ebgv('eb-erate'); return r2(Math.max(100, raw)); };
 function ebUpdateGrand() {
   const r = ebgv('eb-rent'), w = ebGetWater(), e = ebGetElec(), f = ebgv('eb-fine');
   document.getElementById('eb-grand').textContent = fmt(r + w + e + f) + ' บาท';
@@ -1532,7 +1592,7 @@ async function saveEditBill() {
   if (btn.disabled || !activeEditBillId) return;
 
   const r = ebgv('eb-rent'), w = ebGetWater(), e = ebGetElec(), f = ebgv('eb-fine');
-  if (r <= 0 && w <= 0 && e <= 0) {
+  if (r <= 0 && ebgv('eb-wcurr') <= 0 && ebgv('eb-ecurr') <= 0 && !ebKeepWater() && !ebKeepElec()) {
     showAlert('กรุณากรอกค่าห้อง หรือค่าน้ำ หรือค่าไฟอย่างน้อย 1 รายการ', 'warn');
     return;
   }
@@ -1545,11 +1605,12 @@ async function saveEditBill() {
     const update = {
       rent: r, water: w, elec: e, fine: f || 0,
       fine_reason: document.getElementById('eb-fine-reason').value.trim(),
-      total: r + w + e + f,
-      water_units: Math.max(0, ebgv('eb-wcurr') - ebgv('eb-wprev')),
-      elec_units: Math.max(0, ebgv('eb-ecurr') - ebgv('eb-eprev')),
-      meter_wcurr: ebgv('eb-wcurr'),
-      meter_ecurr: ebgv('eb-ecurr'),
+      total: r2(r + w + e + f),
+      water_units: ebKeepWater() ? (ebOrigBill.water_units || 0) : Math.max(0, ebgv('eb-wcurr') - ebgv('eb-wprev')),
+      elec_units:  ebKeepElec()  ? (ebOrigBill.elec_units  || 0) : Math.max(0, ebgv('eb-ecurr') - ebgv('eb-eprev')),
+      // Blank meter → null (not 0) so it is never used as next month's previous reading
+      meter_wcurr: document.getElementById('eb-wcurr').value === '' ? null : ebgv('eb-wcurr'),
+      meter_ecurr: document.getElementById('eb-ecurr').value === '' ? null : ebgv('eb-ecurr'),
     };
     const { error } = await sb.from('bills').update(update).eq('id', activeEditBillId);
     if (error) throw error;
@@ -1581,14 +1642,31 @@ async function deleteBill(billId) {
   const btn = document.getElementById('bd-delete-btn');
   if (btn) { btn.disabled = true; }
   try {
-    // Clean up dependent rows first so nothing is left pointing at a bill that no longer exists
-    const { error: payErr } = await sb.from('payments').delete().eq('bill_id', billId);
-    if (payErr) throw payErr;
-    const { error: notifErr } = await sb.from('notifications').delete().eq('bill_id', billId);
-    if (notifErr) console.warn('Notification cleanup warning:', notifErr.message);
+    // Preferred: one database transaction (see supabase-fix.sql) — all rows are deleted or none are
+    const { error: rpcErr } = await sb.rpc('delete_bill', { p_bill_id: billId });
+    if (rpcErr && !rpcMissing(rpcErr)) throw rpcErr;
+    if (rpcErr) {
+      console.warn('delete_bill RPC not installed — falling back to client-side delete');
+      // Keep a copy of the payments so they can be restored if the bill delete fails
+      const { data: payBackup, error: backupErr } = await sb.from('payments').select('*').eq('bill_id', billId);
+      if (backupErr) throw backupErr;
 
-    const { error } = await sb.from('bills').delete().eq('id', billId);
-    if (error) throw error;
+      // Clean up dependent rows first so nothing is left pointing at a bill that no longer exists
+      // (notifications are non-critical, so they are not restored if the bill delete fails)
+      const { error: notifErr } = await sb.from('notifications').delete().eq('bill_id', billId);
+      if (notifErr) console.warn('Notification cleanup warning:', notifErr.message);
+      const { error: payErr } = await sb.from('payments').delete().eq('bill_id', billId);
+      if (payErr) throw payErr;
+
+      const { error } = await sb.from('bills').delete().eq('id', billId);
+      if (error) {
+        if (payBackup?.length) {
+          const { error: restoreErr } = await sb.from('payments').insert(payBackup);
+          if (restoreErr) console.error('Payment restore failed:', restoreErr.message, payBackup);
+        }
+        throw error;
+      }
+    }
 
     cache.del('bills', 'payments', 'notifications');
     cache.monthLabels = null;
@@ -1625,11 +1703,22 @@ async function doVerify(approve) {
 
   try {
     if(!approve) {
-      await sb.from('payments').update({status:'rejected',verified_at:new Date().toISOString()}).eq('id',activeVerifyPayId);
+      const{error}=await sb.from('payments').update({status:'rejected',verified_at:new Date().toISOString()}).eq('id',activeVerifyPayId);
+      if(error) throw error;
     } else {
-      const amt=parseFloat(document.getElementById('vr-amount').value);
+      const amt=r2(document.getElementById('vr-amount').value);
       if(!amt||amt<=0){showAlert('กรุณากรอกจำนวนเงิน','warn');return;}
-      await sb.from('payments').update({status:'verified',amount:amt,verified_at:new Date().toISOString()}).eq('id',activeVerifyPayId);
+      // Don't allow confirming more than what is still owed (same rule as admin manual payment)
+      const[{data:bill,error:billErr},{data:others,error:othersErr}]=await Promise.all([
+        sb.from('bills').select('total').eq('id',activeVerifyBillId).single(),
+        sb.from('payments').select('amount').eq('bill_id',activeVerifyBillId).eq('status','verified').neq('id',activeVerifyPayId)
+      ]);
+      if(billErr) throw billErr;
+      if(othersErr) throw othersErr;
+      const remaining=r2((bill?.total||0)-(others||[]).reduce((s,p)=>s+(p.amount||0),0));
+      if(amt>remaining){showAlert(`ยอดเกินยอดค้างชำระ (${fmt(Math.max(0,remaining))} บาท)`,'warn');return;}
+      const{error}=await sb.from('payments').update({status:'verified',amount:amt,verified_at:new Date().toISOString()}).eq('id',activeVerifyPayId);
+      if(error) throw error;
     }
     await recalcBillStatus(activeVerifyBillId);
     cache.del('bills','payments','notifications');
@@ -1647,10 +1736,21 @@ async function doVerify(approve) {
 }
 
 async function verifyPayment(payId,billId,approve) {
-  await sb.from('payments').update({status:approve?'verified':'rejected',verified_at:new Date().toISOString()}).eq('id',payId);
-  await recalcBillStatus(billId);
+  if(!approve && !confirm('ยกเลิกรายการชำระนี้? รายการจะถูกเปลี่ยนเป็น "ปฏิเสธ" และยอดค้างชำระของบิลจะเพิ่มขึ้น')) return;
+  try {
+    const{error}=await sb.from('payments').update({status:approve?'verified':'rejected',verified_at:new Date().toISOString()}).eq('id',payId);
+    if(error) throw error;
+    await recalcBillStatus(billId);
+  } catch(err) {
+    showAlert('เกิดข้อผิดพลาด: '+(err.message||err),'danger');
+    return;
+  }
   cache.del('bills','payments','notifications');
+  cache.monthLabels = null;
   loadDashboard();
+  if(document.getElementById('page-roomgrid').classList.contains('active')) loadRoomGrid();
+  if(document.getElementById('page-bills').classList.contains('active')) loadBills();
+  if(document.getElementById('page-payments').classList.contains('active')) loadPayments();
   openBillDetail(billId);
 }
 
@@ -1712,6 +1812,18 @@ async function saveManualPayment() {
   btn.innerHTML='⏳ กำลังบันทึก...';
   const billId=activeManualPayBillId;
   try {
+    // Re-check what is still owed — a slip may have been verified since this modal was opened
+    const[{data:bill,error:billErr},{data:paid,error:paidErr}]=await Promise.all([
+      sb.from('bills').select('total').eq('id',billId).single(),
+      sb.from('payments').select('amount').eq('bill_id',billId).eq('status','verified')
+    ]);
+    if(billErr) throw billErr;
+    if(paidErr) throw paidErr;
+    activeManualPayRemaining=Math.max(0,r2((bill?.total||0)-(paid||[]).reduce((s,p)=>s+(p.amount||0),0)));
+    document.getElementById('mp-remaining').textContent=fmt(activeManualPayRemaining)+' บาท';
+    updateManualPayLeft();
+    if(amt>activeManualPayRemaining){showAlert(`ยอดเกินยอดค้างชำระ (${fmt(activeManualPayRemaining)} บาท) — มีการชำระเข้ามาระหว่างนี้`,'warn');return;}
+
     const method=document.getElementById('mp-method').value;
     const extra=document.getElementById('mp-note').value.trim();
     const now=new Date().toISOString();
@@ -1742,20 +1854,23 @@ async function saveManualPayment() {
 }
 
 async function recalcBillStatus(billId) {
-  const[{data:pays},{data:bill}]=await Promise.all([
+  const[{data:pays,error:payErr},{data:bill,error:billErr}]=await Promise.all([
     sb.from('payments').select('status,amount').eq('bill_id',billId),
     sb.from('bills').select('total').eq('id',billId).single()
   ]);
+  if(payErr) throw payErr;
+  if(billErr) throw billErr;
   if(!bill) return;
   const paid   =(pays||[]).filter(p=>p.status==='verified').reduce((s,p)=>s+(p.amount||0),0);
   const pending=(pays||[]).some(p=>p.status==='pending_verify');
   let st='pending';
   if(pending)        st='paid';
-  else if(paid>=bill.total) st='confirmed';
+  else if(r2(paid)>=r2(bill.total)) st='confirmed';  // compare in satang to avoid float drift
   else if(paid>0)    st='partial';
   const upd={status:st};
   if(st==='confirmed') upd.confirmed_at=new Date().toISOString();
-  await sb.from('bills').update(upd).eq('id',billId);
+  const{error}=await sb.from('bills').update(upd).eq('id',billId);
+  if(error) throw error;
 }
 
 // ============================================================
@@ -1764,13 +1879,25 @@ async function recalcBillStatus(billId) {
 async function loadPayments() {
   const cached=cache.get('payments');
   if(cached){renderPayments(cached);return;}
-  const{data,error}=await sb.from('payments')
-    .select('id,bill_id,amount,status,paid_at,note,slip_url,bills(room,tenant_name,month_label)')
-    .order('paid_at',{ascending:false});
+  // Every slip still waiting for review + only the latest 100 processed ones (history grows forever)
+  const cols='id,bill_id,amount,status,paid_at,note,slip_url,bills(room,tenant_name,month_label)';
+  const[pendRes,recentRes]=await Promise.all([
+    sb.from('payments').select(cols).eq('status','pending_verify').order('paid_at',{ascending:false}),
+    sb.from('payments').select(cols).neq('status','pending_verify').order('paid_at',{ascending:false}).limit(100)
+  ]);
+  const error=pendRes.error||recentRes.error;
   if(error) { showAlert('โหลดข้อมูลไม่ได้: '+error.message,'danger'); return; }
-  const rows=data||[];
+  const rows=[...(pendRes.data||[]),...(recentRes.data||[])]
+    .sort((a,b)=>new Date(b.paid_at)-new Date(a.paid_at));
   cache.set('payments',rows);
   renderPayments(rows);
+}
+// Light count-only query so the 💸 badge shows pending slips right after the page opens
+async function loadPayBadge() {
+  const{count,error}=await sb.from('payments').select('id',{count:'exact',head:true}).eq('status','pending_verify');
+  if(error) { console.warn('Pay badge load failed:', error.message); return; }
+  const badge=document.getElementById('payBadge');
+  badge.textContent=count||0; badge.style.display=count?'inline':'none';
 }
 function renderPayments(data) {
   const el=document.getElementById('paymentsList');
@@ -1789,7 +1916,7 @@ function renderPayments(data) {
     <span class="pill ${p.status==='verified'?'pill-confirmed':p.status==='rejected'?'pill-rejected':'pill-verify'}">${p.status==='verified'?'✅ ยืนยัน':p.status==='rejected'?'❌ ปฏิเสธ':'🔍 รอตรวจ'}</span>
     ${p.status==='pending_verify'?`<button class="btn btn-primary" style="padding:5px 12px;font-size:12px" onclick="openVerifyModal('${esc(p.id)}','${esc(p.bill_id)}',${parseFloat(p.amount)||0})">🔍 ตรวจสอบ</button>`:''}
   </div></div>
-  ${slipUrl?`<img src="${slipUrl}" class="slip-img" style="max-height:220px;object-fit:contain;cursor:pointer" loading="lazy" data-slip-url="${slipUrl}" onclick="window.open(this.dataset.slipUrl,'_blank','noopener,noreferrer')">`:''}
+  ${slipUrl?`<img src="${esc(slipUrl)}" class="slip-img" style="max-height:220px;object-fit:contain;cursor:pointer" loading="lazy" data-slip-url="${esc(slipUrl)}" onclick="window.open(this.dataset.slipUrl,'_blank','noopener,noreferrer')">`:''}
   </div>`;
   }).join('');
 }
@@ -1798,34 +1925,40 @@ function renderPayments(data) {
 // DASHBOARD
 // ============================================================
 async function _fetchDashboardData(selectedMonth='') {
-  const[tenants,billsRes]=await Promise.all([
-    fetchTenants(),
-    sb.from('bills')
-      .select('id,tenant_id,room,tenant_name,month_label,total,status,issued_at')
-      .order('issued_at',{ascending:false})
-      .then(r=>selectedMonth?({data:(r.data||[]).filter(b=>b.month_label===selectedMonth)}):r)
-  ]);
+  let billsQ=sb.from('bills')
+    .select('id,tenant_id,room,tenant_name,month_label,total,status,issued_at')
+    .order('issued_at',{ascending:false});
+  if(selectedMonth) billsQ=billsQ.eq('month_label',selectedMonth);  // filter on the server, not after downloading every bill
+  const[tenants,billsRes]=await Promise.all([fetchTenants(), billsQ]);
   const allBills=billsRes.data||[];
-  if(!cache.monthLabels && allBills.length)
-    cache.monthLabels=[...new Set(allBills.map(b=>b.month_label).filter(Boolean))];
+  // Only derive month labels from the unfiltered list, otherwise the dropdowns would shrink to one month
+  if(!selectedMonth && !cache.monthLabels && allBills.length)
+    cache.monthLabels=sortMonthLabels([...new Set(allBills.map(b=>b.month_label).filter(Boolean))]);
+  // Latest bill per tenant = newest bill month (a back-dated bill created later must not win)
   const billMap={};
-  for(const b of allBills) if(!billMap[b.tenant_id]) billMap[b.tenant_id]=b;
+  for(const b of allBills){
+    const cur=billMap[b.tenant_id];
+    if(!cur||monthKey(b.month_label)>monthKey(cur.month_label)) billMap[b.tenant_id]=b;
+  }
   return{tenants, billMap};
 }
 
 async function loadDashboard() {
   if(!sb) return;
   const mSel = document.getElementById('dash-overview-month');
-  if (mSel && mSel.options.length <= 1) {
+  if (mSel) {
+    // If admin was viewing the newest month (or nothing yet), follow the newest month after refresh
+    const prevNewest = mSel.options[1]?.value || '';
+    const followNewest = !mSel.value || mSel.value === prevNewest;
+    await populateMonthSelect(mSel, mSel.value);
     const labels = await getMonthLabels();
-    const frag = document.createDocumentFragment();
-    labels.forEach(l => { const o = new Option(l, l); frag.appendChild(o); });
-    mSel.appendChild(frag);
-    if (labels.length && !mSel.value) mSel.value = labels[0];
+    if (labels.length && followNewest) mSel.value = labels[0];
   }
   const selectedMonth = mSel?.value || '';
   const{tenants,billMap}=await _fetchDashboardData(selectedMonth);
-  const bills=Object.values(billMap);
+  // Only count bills of current tenants — same set the room grid shows
+  const tenantIds=new Set(tenants.map(t=>t.id));
+  const bills=Object.values(billMap).filter(b=>tenantIds.has(b.tenant_id));
   document.getElementById('st-rooms').textContent  =tenants.length;
   document.getElementById('st-pending').textContent=bills.filter(b=>b.status==='pending'||b.status==='partial').length;
   document.getElementById('st-partial').textContent=bills.filter(b=>b.status==='paid').length;
@@ -1890,7 +2023,8 @@ async function loadSummary() {
   const yearBE=parseInt(document.getElementById('sum-year').value);
   const{data:bills}=await sb.from('bills')
     .select('room,tenant_name,month_label,rent,water,elec,fine,total')
-    .eq('status','confirmed');
+    .eq('status','confirmed')
+    .like('month_label','%'+yearBE+'%');  // same match as the includes() filter below, but done on the server
   const yb=(bills||[]).filter(b=>b.month_label?.includes(String(yearBE)));
   const mm={};
   MSHORT.forEach(m=>{mm[m]={rent:0,water:0,elec:0,fine:0,total:0,rooms:new Set()};});
