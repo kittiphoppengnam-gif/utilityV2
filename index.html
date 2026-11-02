@@ -552,7 +552,13 @@ input,select,textarea{font-size:16px}
 <!-- MODAL: Admin Manual Payment -->
 <div class="overlay" id="manualPayOverlay">
   <div class="modal">
-    <h2>💵 รับชำระเงิน</h2>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <h2>💵 รับชำระเงิน</h2>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+        <label for="mp-date" style="font-size:11px;color:var(--muted)">วันที่ชำระ</label>
+        <input type="date" id="mp-date" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surf2);color:inherit;font:inherit;font-size:13px">
+      </div>
+    </div>
     <div class="modal-sub" id="mp-sub"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
       <div style="background:var(--surf2);border-radius:10px;padding:12px">
@@ -1786,6 +1792,8 @@ async function openManualPay(billId) {
   document.getElementById('mp-amount').value=remaining;
   document.getElementById('mp-method').value='เงินสด';
   document.getElementById('mp-note').value='';
+  const today=new Date();
+  document.getElementById('mp-date').value=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   document.getElementById('mp-save-btn').disabled=false;
   updateManualPayLeft();
   closeModal('billDetailOverlay');
@@ -1806,6 +1814,8 @@ async function saveManualPayment() {
   const amt=Math.round(gv('mp-amount')*100)/100;
   if(amt<=0) { showAlert('กรุณากรอกจำนวนเงิน','warn'); return; }
   if(amt>activeManualPayRemaining) { showAlert(`ยอดเกินยอดค้างชำระ (${fmt(activeManualPayRemaining)} บาท)`,'warn'); return; }
+  const dateVal=document.getElementById('mp-date').value;
+  if(!dateVal) { showAlert('กรุณาเลือกวันที่ชำระ','warn'); return; }
 
   btn.disabled=true;
   const originalText=btn.innerHTML;
@@ -1826,11 +1836,15 @@ async function saveManualPayment() {
 
     const method=document.getElementById('mp-method').value;
     const extra=document.getElementById('mp-note').value.trim();
-    const now=new Date().toISOString();
+    const nowDate=new Date();
+    const now=nowDate.toISOString();
+    // Use the chosen date with the current local time of day
+    const[y,m,d]=dateVal.split('-').map(Number);
+    const paidAt=new Date(y,m-1,d,nowDate.getHours(),nowDate.getMinutes(),nowDate.getSeconds()).toISOString();
     const{error}=await sb.from('payments').insert({
       bill_id:billId, amount:amt, status:'verified',
       note:`[แอดมินบันทึก • ${method}]${extra?' '+extra:''}`,
-      paid_at:now, verified_at:now
+      paid_at:paidAt, verified_at:now
     });
     if(error) throw error;
     await recalcBillStatus(billId);
